@@ -21,6 +21,7 @@ hive = "hive.__main__:main"
 select = ["E", "F", "N", "ANN", "ARG", "UP"]
 ignore = ["ANN101", "ANN102", "ANN401"]
 exclude = ["base.py"]
+target-version = "py39"
 
 [build-system]
 requires = ["poetry-core"]
