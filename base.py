@@ -1,25 +1,41 @@
 from __future__ import annotations
 import math
+from typing import TypeAlias
 from PIL import Image, ImageDraw
 
 # DO NOT MODIFY THIS FILE
 # THIS FILE IS NOT UPLOADED TO BRUTE (all changes in it will be ignored by Brute)
 
+BoardData: TypeAlias = dict[int, dict[int, str]]
+Tile: TypeAlias = tuple[int, int]
+PiecesDict: TypeAlias = dict[str, int]
+
 
 class Board:
+    size: int
+    myMove: int
+    board: BoardData
+    myColorIsUpper: bool
+    algorithmName: str
+    playerName: str
+
+    myPieces: PiecesDict
+    rivalPieces: PiecesDict
+
     def __init__(
         self,
         myIsUpper: bool,
         size: int,
-        myPieces: dict[str, int],
-        rivalPieces: dict[str, int],
-    ):
-        self.size: int = size  # integer, size of the board
-        self.myMove: int = 0  # integer, index of actual move
+        myPieces: PiecesDict,
+        rivalPieces: PiecesDict,
+    ) -> None:
+        self.size = size  # integer, size of the board
+        self.myMove = 0  # integer, index of actual move
         # dict of board, use self.board[p][q] to acess cell (p,q)
-        self.board: dict[int, dict[int, str]] = {}
-        # if true, by figures are big (A,Q,S,G,B), otherwise there are small (a,q,s,g,b)
-        self.myColorIsUpper: bool = myIsUpper
+        self.board = {}
+        # if true, by figures are big (A,Q,S,G,B),
+        # otherwise there are small (a,q,s,g,b)
+        self.myColorIsUpper = myIsUpper
         self.algorithmName = "some algorithm"
         self.playerName = "some name"
         self.tournament = (
@@ -70,7 +86,7 @@ class Board:
         self._colors[9] = "#FA7921"  # pumpkin
         self._colors[10] = "#566E3D"  # dark olive green
 
-    def inBoard(self, p, q):
+    def inBoard(self, p: int, q: int) -> bool:
         """return True if (p,q) is valid coordinate"""
         return (
             (q >= 0)
@@ -79,12 +95,12 @@ class Board:
             and (p < (self.size - q // 2))
         )
 
-    def rotateRight(self, p, q):
+    def rotateRight(self, p: int, q: int) -> Tile:
         pp = -q
         qq = p + q
         return pp, qq
 
-    def rotateLeft(self, p, q):
+    def rotateLeft(self, p: int, q: int) -> Tile:
         pp = p + q
         qq = -p
         return pp, qq
@@ -243,7 +259,7 @@ class Board:
 
         img.save(filename)
 
-    def print(self, board):
+    def print(self, board: BoardData) -> None:
         for p in board:
             for q in board[p]:
                 value = board[p][q]
@@ -252,10 +268,12 @@ class Board:
                 print(value, end="  ")
             print()
 
-    def isMyColor(self, p, q, board):
+    def isMyColor(self, p: int, q: int, board: BoardData) -> bool:
         """assuming board[p][q] is not empty"""
-        return ((not self.myColorIsUpper) and board[p][q][-1].islower()) or (
-            self.myColorIsUpper and board[p][q][-1].isupper()
+        tile = self.board[p][q]
+        return (
+            tile.isupper() == self.myColorIsUpper
+            or tile.islower() != self.myColorIsUpper
         )
 
     def isEmpty(self, p: int, q: int, board: dict[int, dict[int, str]]) -> bool:
