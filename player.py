@@ -109,27 +109,38 @@ class Player(Base.Board):
         self.playerName = playerName
         self.algorithmName = "maneren"
 
-    def empty_cells_iter(self) -> TilesGenerator:
+    def cells(self) -> TilesGenerator:
+        """
+        Iterator over all cells
+        """
+        yield from ((p, q) for p in self.board for q in self.board[p])
+
+    def empty_cells(self) -> TilesGenerator:
+        """
+        Iterator over all empty cells
+        """
+        board = self.board
+        yield from (tile for tile in self.cells() if self.isEmpty(*tile, board))
+
+    def nonempty_cells(self) -> TilesGenerator:
+        """
+        Iterator over all nonempty cells
+        """
         yield from (
-            (p, q)
-            for p in self.board
-            for q in self.board[p]
-            if self.isEmpty(p, q, self.board)
+            tile for tile in self.cells() if not self.isEmpty(*tile, self.board)
         )
 
-    def nonempty_cells_iter(self) -> TilesGenerator:
-        yield from (
-            (p, q)
-            for p in self.board
-            for q in self.board[p]
-            if not self.isEmpty(p, q, self.board)
-        )
+    def my_pieces(self) -> Generator[tuple[str, Tile], None, None]:
+        """
+        Iterator over all my pieces on the board
+        """
+        board = self.board
 
-    def my_pieces_iter(self) -> Generator[tuple[str, Tile], None, None]:
-        for x, y in self.nonempty_cells_iter():
-            piece = self.board[x][y]
-            if piece.isupper() == self.myColorIsUpper:
-                yield piece, (x, y)
+        yield from (
+            (board[p][q], (p, q))
+            for p, q in self.my_cells_iter()
+            if self.isMyColor(p, q, board)
+        )
 
     def move(self) -> Move | []:
         """
@@ -142,7 +153,7 @@ class Player(Base.Board):
 
         return []
 
-    def neighbor_tiles_iter(self, p: int, q: int) -> TilesGenerator:
+    def neighbor_tiles(self, p: int, q: int) -> TilesGenerator:
         """
         Iterator over all tiles neighboring the tile (p,q)
         in the hexagonal board
@@ -162,10 +173,10 @@ class Player(Base.Board):
                 if self.inBoard(x, y):
                     yield x, y
 
-    def empty_neighbor_tiles_iter(self, p: int, q: int) -> TilesGenerator:
+    def empty_neighbor_tiles(self, p: int, q: int) -> TilesGenerator:
         return (
             tile
-            for tile in self.neighbor_tiles_iter(p, q)
+            for tile in self.neighbor_tiles(p, q)
             if self.isEmpty(*tile, self.board)
         )
 
@@ -178,7 +189,7 @@ def is_valid_initial_placement(player: Player, piece: str, p: int, q: int) -> bo
     neighboring_my = False
     neighboring_opponent = False
 
-    for p, q in player.empty_neighbor_tiles_iter(p, q):
+    for p, q in player.empty_neighbor_tiles(p, q):
         if player.is_my_tile(p, q):
             neighboring_my = True
         else:
