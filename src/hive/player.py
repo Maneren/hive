@@ -1,6 +1,5 @@
 from __future__ import annotations
 import hive.base as Base
-import random
 from typing import Generator, TypeAlias
 from enum import Enum
 
@@ -88,32 +87,8 @@ class Player(Base.Board):
         this has to stay the same for compatibility with BRUTE
         """
 
-        # the following code just randomly places (ignoring all the rules) some
-        # random figure at the board
-        emptyCells = [*self.empty_cells_iter()]
-
-        if len(emptyCells) == 0:
-            return []
-
-        randomCell = emptyCells[random.randint(0, len(emptyCells) - 1)]
-        randomP, randomQ = randomCell
-
-        for animal in self.myPieces:
-            if (
-                self.myPieces[animal] > 0
-            ):  # is this animal still available? if so, let's place it
-                return [animal, None, None, randomP, randomQ]
-
-        # all animals are places, let's move some randomly
-        # (again, while ignoring all rules)
-        allFigures = self.getAllNonemptyCells()
-        randomCell = allFigures[random.randint(0, len(allFigures) - 1)]
-        randomFigureP, randomFigureQ = randomCell
-        # determine which animal is at randomFigureP, randomFigureQ
-        animal = self.board[randomFigureP][randomFigureQ][
-            -1
-        ]  # [-1] means the last letter
-        return [animal, randomFigureP, randomFigureQ, randomP, randomQ]
+        score, best_move = minimax(
+            self, self.myPieces, self.rivalPieces, [], 0)
 
     def neighbor_tiles_iter(self, p: int, q: int) -> TilesGenerator:
         """
@@ -164,16 +139,16 @@ def is_valid_initial_placement(player: Player, piece: str, p: int, q: int) -> bo
     return neighboring_my and not neighboring_opponent
 
 
-def minimax_movement(
+def minimax(
     player: Player,
     my_pieces: dict[str, int],
     opponents_pieces: dict[str, int],
     move: int,
     depth: int,
-    alpha: int,
-    beta: int,
-):
     if depth > 5:
+    alpha: int = -(10**9),
+    beta: int = 10**9,
+) -> tuple[int, Move]:
         return
     for piece, (piece_x, piece_y) in player.my_pieces_iter():
         for x, y in player.empty_cells_iter():
