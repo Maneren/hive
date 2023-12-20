@@ -19,7 +19,7 @@ hive = "hive.__main__:main"
 
 [tool.ruff]
 select = ["E", "F", "N", "ANN", "ARG", "UP"]
-ignore = ["ANN101", "ANN102", "ANN401"]
+ignore = ["ANN101", "ANN102", "ANN401", "N803"]
 exclude = ["base.py"]
 target-version = "py39"
 
