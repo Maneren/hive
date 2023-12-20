@@ -116,20 +116,20 @@ def is_valid_move(board: BoardData, piece: str, x: int, y: int) -> bool:
     return board[x][y][-1] == piece
 
 
-# def is_valid_placement(player: Player, piece: str, p: int, q: int) -> bool:
-#     neighboring_my = False
-#     neighboring_opponent = False
-#
-#     for p, q in player.empty_neighbor_tiles_iter(p, q):
-#         if player.board[p][q].isupper() == player.myColorIsUpper:
-#             neighboring_my = True
-#         else:
-#             neighboring_opponent = True
-#
-#     # return all(
-#     #     lambda (p, q): board[p][q].isupper() == board.myColorIsUpper, board.empty_neighbor_tiles_iter(p, q))
-#
-#
+def is_valid_initial_placement(player: Player, piece: str, p: int, q: int) -> bool:
+    neighboring_my = False
+    neighboring_opponent = False
+
+    for p, q in player.empty_neighbor_tiles_iter(p, q):
+        if player.is_my_tile(p, q):
+            neighboring_my = True
+        else:
+            # initial placement can't be neighboring opponent's pieces
+            return False
+
+    return neighboring_my and not neighboring_opponent
+
+
 def minimax_movement(
     player: Player,
     my_pieces: dict[str, int],
