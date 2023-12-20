@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "hive"
+version = "0.1.0"
+description = ""
+authors = ["Maneren <49210777+Maneren@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pillow = "^10.1.0"
+[tool.poetry.scripts]
+hive = "hive.__main__:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
