@@ -1,14 +1,14 @@
 run:
     mkdir -p output
-    poetry run hive
+    python player.py
 
 check:
-    poetry run ruff check src/
-    poetry run mypy src/
+    ruff check src/
+    mypy src/
 
 test:
-    poetry run pytest
+    pytest
 
 fmt:
-    poetry run ruff check . --select=I001 --fix
-    poetry run ruff format .
+    ruff check . --select=I001 --fix
+    ruff format .
