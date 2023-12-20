@@ -79,9 +79,7 @@ class Player(Base.Board):
         """
         Do not change this method
         """
-        Base.Board.__init__(
-            self, myIsUpper, size, myPieces, rivalPieces
-        )
+        Base.Board.__init__(self, myIsUpper, size, myPieces, rivalPieces)
         self.playerName = playerName
         self.algorithmName = "maneren"
 
@@ -179,6 +177,7 @@ def minimax(
     beta: int = 10**9,
 ) -> tuple[int, Move]:
         return
+
     for piece, (piece_x, piece_y) in player.my_pieces_iter():
         for x, y in player.empty_cells_iter():
             if not is_valid_move(player.board, piece, x, y):
