@@ -83,7 +83,8 @@ class Player(Base.Board):
 
     def neighbor_tiles_iter(self, p: int, q: int) -> TilesGenerator:
         """
-        Iterator over all tiles neighboring the tile (p,q) in the hexagonal board
+        Iterator over all tiles neighboring the tile (p,q)
+        in the hexagonal board
         """
         # we have 3 possible axis
         for i in range(3):
@@ -107,25 +108,28 @@ class Player(Base.Board):
             if self.isEmpty(*tile, self.board)
         )
 
+    def is_my_tile(self, p: int, q: int) -> bool:
+        return self.board[p][q].isupper() == self.myColorIsUpper
 
-def is_valid_move(board: Player, piece: str, x: int, y: int) -> bool:
+
+def is_valid_move(board: BoardData, piece: str, x: int, y: int) -> bool:
     return board[x][y][-1] == piece
 
 
-def is_valid_placement(player: Player, piece: str, p: int, q: int) -> bool:
-    neighboring_my = False
-    neignhboring_opponent = False
-
-    for p, q in player.empty_neighbor_tiles_iter(p, q):
-        if player.board[p][q].isupper() == player.myColorIsUpper:
-            neighboring_my = True
-        else:
-            neignhboring_opponent = True
-
-    # return all(
-    #     lambda (p, q): board[p][q].isupper() == board.myColorIsUpper, board.empty_neighbor_tiles_iter(p, q))
-
-
+# def is_valid_placement(player: Player, piece: str, p: int, q: int) -> bool:
+#     neighboring_my = False
+#     neighboring_opponent = False
+#
+#     for p, q in player.empty_neighbor_tiles_iter(p, q):
+#         if player.board[p][q].isupper() == player.myColorIsUpper:
+#             neighboring_my = True
+#         else:
+#             neighboring_opponent = True
+#
+#     # return all(
+#     #     lambda (p, q): board[p][q].isupper() == board.myColorIsUpper, board.empty_neighbor_tiles_iter(p, q))
+#
+#
 def minimax_movement(
     player: Player,
     my_pieces: dict[str, int],

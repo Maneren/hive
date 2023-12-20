@@ -119,8 +119,7 @@ class Board:
         """
 
         def pq2hexa(p, q):
-            cx = cellRadius * (math.sqrt(3) * p +
-                               math.sqrt(3) / 2 * q) + cellRadius
+            cx = cellRadius * (math.sqrt(3) * p + math.sqrt(3) / 2 * q) + cellRadius
             cy = cellRadius * (0 * p + 3 / 2 * q) + cellRadius
 
             pts = []
@@ -132,7 +131,8 @@ class Board:
             return cx, cy, pts
 
         def drawPieces(piecesToDraw, piecesToDrawOriginal, draw, p, q, HLA={}):
-            # HLA is dict, key is animal for highlight, value is color, e.g. HLA["a"] = "#RRGGBB" will highlight my own piece 'a'
+            # HLA is dict, key is animal for highlight, value is color,
+            # e.g. HLA["a"] = "#RRGGBB" will highlight my own piece 'a'
             for animal in piecesToDraw:
                 for v in range(piecesToDrawOriginal[animal]):
                     # draw this animal
@@ -171,8 +171,6 @@ class Board:
         img = Image.new("RGB", (width, height), "white")
 
         draw = ImageDraw.Draw(img)
-
-        lineColor = (50, 50, 50)
 
         allQ = []
         allP = []
@@ -235,11 +233,9 @@ class Board:
         maxq += 2
         minp += 1
 
-        drawPieces(self.myPieces, self._myPiecesOriginal,
-                   draw, minp, maxq, HLA)
+        drawPieces(self.myPieces, self._myPiecesOriginal, draw, minp, maxq, HLA)
         maxq += 1
-        drawPieces(self.rivalPieces, self._rivalPiecesOriginal,
-                   draw, minp, maxq, HLA)
+        drawPieces(self.rivalPieces, self._rivalPiecesOriginal, draw, minp, maxq, HLA)
 
         for line in LINES:
             color, p1, q1, p2, q2 = line
