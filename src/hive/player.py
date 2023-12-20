@@ -16,6 +16,31 @@ TilesGenerator: TypeAlias = Generator[Tile, None, None]
 Move: TypeAlias = list[str, int, int, int,
                        int] | list[str, None, None, int, int]
 
+
+def play_move(board: BoardData, move: Move) -> BoardData:
+    piece, fromP, fromQ, toP, toQ = move
+
+    # add the piece to its new position
+    board[toP][toQ] = board[toP][toQ] + piece
+
+    if fromP is not None:
+        # remove the piece from its old position
+        assert board[fromP][fromQ][-1] == piece
+        board[fromP][fromQ] = board[fromP][fromQ][:-1]
+
+
+def reverse_move(board: BoardData, move: Move) -> None:
+    piece, fromP, fromQ, toP, toQ = move
+
+    if fromP is not None:
+        # add the piece back to its old position
+        board[fromP][fromQ] = board[fromP][fromQ] + board[toP][toQ]
+
+    # remove the piece from its new position
+    assert board[toP][toQ][-1] == piece
+    board[toP][toQ] = board[toP][toQ][:-1]
+
+
 class Node:
     class State(Enum):
         RUNNING = 0
