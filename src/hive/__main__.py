@@ -1,6 +1,28 @@
 from hive.player import Player, updatePlayers
 
 
+def updatePlayers(move, activePlayer, passivePlayer):
+    """write move made by activePlayer player
+    this method assumes that all moves are correct, no checking is made
+    """
+    if not move:
+        return
+
+    animal, p, q, newp, newq = move
+    if p is None and q is None:
+        # placing new animal
+        activePlayer.myPieces[animal] -= 1
+        passivePlayer.rivalPieces = activePlayer.myPieces.copy()
+    else:
+        # just moving animal
+        # delete its old position
+        activePlayer.board[p][q] = activePlayer.board[p][q][:-1]
+        passivePlayer.board[p][q] = passivePlayer.board[p][q][:-1]
+
+    activePlayer.board[newp][newq] += animal
+    passivePlayer.board[newp][newq] += animal
+
+
 def main():
     boardSize = 13
     smallFigures = {
@@ -25,13 +47,13 @@ def main():
         move = P1.move()
         print("P1 returned", move)
         updatePlayers(move, P1, P2)  # update P1 and P2 according to the move
-        filename = "output/move-{:03d}-player1.png".format(moveIdx)
+        filename = f"output/move-{moveIdx:03d}-player1.png"
         P1.saveImage(filename)
 
         move = P2.move()
         print("P2 returned", move)
         updatePlayers(move, P2, P1)  # update P2 and P1 according to the move
-        filename = "output/move-{:03d}-player2.png".format(moveIdx)
+        filename = f"output/move-{moveIdx:03d}-player2.png"
         P1.saveImage(filename)
 
         moveIdx += 1
