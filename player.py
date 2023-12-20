@@ -181,6 +181,9 @@ class Player(Base.Board):
             if self.isEmpty(*tile, self.board)
         )
 
+    def is_my_tile(self, p: int, q: int) -> bool:
+        return self.board[p][q].isupper() == self.myColorIsUpper
+
 
 def is_valid_move(board: BoardData, piece: str, x: int, y: int) -> bool:
     return board[x][y][-1] == piece
