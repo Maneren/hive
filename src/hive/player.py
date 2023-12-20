@@ -208,25 +208,3 @@ def minimax(
                 continue
 
             print(piece, piece_x, piece_y, x, y)
-
-
-def updatePlayers(move, activePlayer, passivePlayer):
-    """write move made by activePlayer player
-    this method assumes that all moves are correct, no checking is made
-    """
-    if not move:
-        return
-
-    animal, p, q, newp, newq = move
-    if p is None and q is None:
-        # placing new animal
-        activePlayer.myPieces[animal] -= 1
-        passivePlayer.rivalPieces = activePlayer.myPieces.copy()
-    else:
-        # just moving animal
-        # delete its old position
-        activePlayer.board[p][q] = activePlayer.board[p][q][:-1]
-        passivePlayer.board[p][q] = passivePlayer.board[p][q][:-1]
-
-    activePlayer.board[newp][newq] += animal
-    passivePlayer.board[newp][newq] += animal
