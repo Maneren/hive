@@ -61,16 +61,20 @@ class Player(Base.Board):
         self.algorithmName = "maneren"
 
     def empty_cells_iter(self) -> TilesGenerator:
-        for p in self.board:
-            for q in self.board[p]:
-                if self.isEmpty(p, q, self.board):
-                    yield p, q
+        yield from (
+            (p, q)
+            for p in self.board
+            for q in self.board[p]
+            if self.isEmpty(p, q, self.board)
+        )
 
     def nonempty_cells_iter(self) -> TilesGenerator:
-        for p in self.board:
-            for q in self.board[p]:
-                if not self.isEmpty(p, q, self.board):
-                    yield p, q
+        yield from (
+            (p, q)
+            for p in self.board
+            for q in self.board[p]
+            if not self.isEmpty(p, q, self.board)
+        )
 
     def my_pieces_iter(self) -> Generator[tuple[str, Tile], None, None]:
         for x, y in self.nonempty_cells_iter():
