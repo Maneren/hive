@@ -40,12 +40,12 @@ class Board:
         self._imagesSmall = {}
 
         for imagename in ["ant", "beetle", "bee", "spider", "grasshopper"]:
-            self._images[imagename] = Image.open(
-                "images/{}.png".format(imagename)
-            ).resize((70, 70))
-            self._imagesSmall[imagename] = Image.open(
-                "images/{}.png".format(imagename)
-            ).resize((20, 20))
+            self._images[imagename] = Image.open(f"images/{imagename}.png").resize(
+                (70, 70)
+            )
+            self._imagesSmall[imagename] = Image.open(f"images/{imagename}.png").resize(
+                (20, 20)
+            )
 
         # create empty board as a dictionary
         for p in range(-self.size, self.size):
@@ -209,13 +209,11 @@ class Board:
                 pts.append(pts[0])
                 pts.append(pts[1])
                 draw.line(pts, fill="black", width=1)
-                draw.text(
-                    [cx - 3, cy - 3], "{} {}".format(p, q), fill="black", anchor="mm"
-                )
+                draw.text([cx - 3, cy - 3], f"{p} {q}", fill="black", anchor="mm")
                 if not self.isEmpty(p, q, self.board):
                     draw.text(
                         [cx, cy],
-                        "{}".format(self.board[p][q]),
+                        f"{self.board[p][q]}",
                         fill="black",
                         anchor="mm",
                     )
