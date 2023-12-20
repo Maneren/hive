@@ -14,6 +14,9 @@ from enum import Enum
 BoardData: TypeAlias = dict[int, dict[int, str]]
 Tile: TypeAlias = tuple[int, int]
 TilesGenerator: TypeAlias = Generator[Tile, None, None]
+Move: TypeAlias = list[str, int, int, int,
+                       int] | list[str, None, None, int, int]
+
 class Node:
     class State(Enum):
         RUNNING = 0
@@ -48,10 +51,13 @@ class Player(Base.Board):
         size: int,
         myPieces: dict[str, int],
         rivalPieces: dict[str, int],
-    ):  # do not change this line
+    ):
+        """
+        Do not change this method
+        """
         Base.Board.__init__(
             self, myIsUpper, size, myPieces, rivalPieces
-        )  # do not change this line
+        )
         self.playerName = playerName
         self.algorithmName = "maneren"
 
@@ -73,11 +79,13 @@ class Player(Base.Board):
             if piece.isupper() == self.myColorIsUpper:
                 yield piece, (x, y)
 
-    def move(self):
+    def move(self) -> Move | []:
         """
         return [animal, oldP, oldQ, newP, newQ],
         or [animal, None, None, newP, newQ]
-        or []
+        or [] if no move is possible
+
+        this has to stay the same for compatibility with BRUTE
         """
 
         # the following code just randomly places (ignoring all the rules) some
