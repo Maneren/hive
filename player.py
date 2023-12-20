@@ -1,6 +1,7 @@
 from __future__ import annotations
 import base as Base
-from typing import Generator, TypeAlias
+from typing import TypeAlias
+from collections.abc import Generator
 from enum import Enum
 
 
@@ -101,7 +102,7 @@ class Player(Base.Board):
         size: int,
         myPieces: dict[str, int],
         rivalPieces: dict[str, int],
-    ):
+    ) -> None:
         """
         Do not change this method
         """
@@ -142,7 +143,7 @@ class Player(Base.Board):
             if self.isMyColor(p, q, board)
         )
 
-    def move(self) -> Move | []:
+    def move(self) -> Move | list[None]:
         """
         return [animal, oldP, oldQ, newP, newQ],
         or [animal, None, None, newP, newQ]
