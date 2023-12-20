@@ -14,8 +14,7 @@ from enum import Enum
 BoardData: TypeAlias = dict[int, dict[int, str]]
 Tile: TypeAlias = tuple[int, int]
 TilesGenerator: TypeAlias = Generator[Tile, None, None]
-Move: TypeAlias = list[str, int, int, int,
-                       int] | list[str, None, None, int, int]
+Move: TypeAlias = list[str, int, int, int, int] | list[str, None, None, int, int]
 
 
 def play_move(board: BoardData, move: Move) -> None:
@@ -97,17 +96,17 @@ class Node:
 class Player(Base.Board):
     def __init__(
         self,
-        playerName: str,
-        myIsUpper: bool,
+        player_name: str,
+        my_is_upper: bool,
         size: int,
-        myPieces: dict[str, int],
-        rivalPieces: dict[str, int],
+        my_pieces: dict[str, int],
+        rival_pieces: dict[str, int],
     ) -> None:
         """
         Do not change this method
         """
-        Base.Board.__init__(self, myIsUpper, size, myPieces, rivalPieces)
-        self.playerName = playerName
+        Base.Board.__init__(self, my_is_upper, size, my_pieces, rival_pieces)
+        self.playerName = player_name
         self.algorithmName = "maneren"
 
     def cells(self) -> TilesGenerator:
@@ -139,9 +138,16 @@ class Player(Base.Board):
 
         yield from (
             (board[p][q], (p, q))
-            for p, q in self.my_cells_iter()
+            for p, q in self.nonempty_cells()
             if self.isMyColor(p, q, board)
         )
+
+    def valid_moves(self) -> Generator[Move, None, None]:
+        """
+        Iterator over all valid moves
+        """
+
+        raise RuntimeError("not implemented")
 
     def move(self) -> Move | list[None]:
         """
@@ -151,6 +157,8 @@ class Player(Base.Board):
 
         this has to stay the same for compatibility with BRUTE
         """
+
+        nodes = self.valid_moves()
 
         return []
 
@@ -193,8 +201,8 @@ def is_valid_initial_placement(player: Player, piece: str, p: int, q: int) -> bo
     neighboring_my = False
     neighboring_opponent = False
 
-    for p, q in player.empty_neighbor_tiles(p, q):
-        if player.is_my_tile(p, q):
+    for np, nq in player.empty_neighbor_tiles(p, q):
+        if player.is_my_tile(np, nq):
             neighboring_my = True
         else:
             # initial placement can't be neighboring opponent's pieces
@@ -203,7 +211,7 @@ def is_valid_initial_placement(player: Player, piece: str, p: int, q: int) -> bo
     return neighboring_my and not neighboring_opponent
 
 
-def updatePlayers(move, activePlayer, passivePlayer):
+def update_players(move: Move, active_player: Player, passive_player: Player) -> None:
     """write move made by activePlayer player
     this method assumes that all moves are correct, no checking is made
     """
@@ -213,56 +221,56 @@ def updatePlayers(move, activePlayer, passivePlayer):
     animal, p, q, newp, newq = move
     if p is None and q is None:
         # placing new animal
-        activePlayer.myPieces[animal] -= 1
-        passivePlayer.rivalPieces = activePlayer.myPieces.copy()
+        active_player.myPieces[animal] -= 1
+        passive_player.rivalPieces = active_player.myPieces.copy()
     else:
         # just moving animal
         # delete its old position
-        activePlayer.board[p][q] = activePlayer.board[p][q][:-1]
-        passivePlayer.board[p][q] = passivePlayer.board[p][q][:-1]
+        active_player.board[p][q] = active_player.board[p][q][:-1]
+        passive_player.board[p][q] = passive_player.board[p][q][:-1]
 
-    activePlayer.board[newp][newq] += animal
-    passivePlayer.board[newp][newq] += animal
+    active_player.board[newp][newq] += animal
+    passive_player.board[newp][newq] += animal
 
 
-def main():
-    boardSize = 13
-    smallFigures = {
+def main() -> None:
+    board_size = 13
+    small_figures = {
         "q": 1,
         "a": 2,
         "b": 2,
         "s": 2,
         "g": 2,
     }  # key is animal, value is how many is available for placing
-    bigFigures = {
-        figure.upper(): smallFigures[figure] for figure in smallFigures
+    big_figures = {
+        figure.upper(): small_figures[figure] for figure in small_figures
     }  # same, but with upper case
 
-    P1 = Player("player1", True, 13, smallFigures, bigFigures)
-    P2 = Player("player2", True, 13, bigFigures, smallFigures)
+    p1 = Player("player1", True, board_size, small_figures, big_figures)
+    p1 = Player("player2", True, board_size, big_figures, small_figures)
 
     filename = "output/begin.png"
-    P1.saveImage(filename)
+    p1.saveImage(filename)
 
-    moveIdx = 0
+    move_idx = 0
     while True:
-        move = P1.move()
+        move = p1.move()
         print("P1 returned", move)
-        updatePlayers(move, P1, P2)  # update P1 and P2 according to the move
-        filename = "output/move-{:03d}-player1.png".format(moveIdx)
-        P1.saveImage(filename)
+        update_players(move, p1, p1)  # update P1 and P2 according to the move
+        filename = "output/move-{:03d}-player1.png".format(move_idx)
+        p1.saveImage(filename)
 
-        move = P2.move()
+        move = p1.move()
         print("P2 returned", move)
-        updatePlayers(move, P2, P1)  # update P2 and P1 according to the move
-        filename = "output/move-{:03d}-player2.png".format(moveIdx)
-        P1.saveImage(filename)
+        update_players(move, p1, p1)  # update P2 and P1 according to the move
+        filename = "output/move-{:03d}-player2.png".format(move_idx)
+        p1.saveImage(filename)
 
-        moveIdx += 1
-        P1.myMove = moveIdx
-        P2.myMove = moveIdx
+        move_idx += 1
+        p1.myMove = move_idx
+        p1.myMove = move_idx
 
-        if moveIdx > 50:
+        if move_idx > 50:
             print("End of the test game")
             break
 
