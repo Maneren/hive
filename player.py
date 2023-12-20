@@ -138,8 +138,7 @@ class Player(Base.Board):
         this has to stay the same for compatibility with BRUTE
         """
 
-        score, best_move = minimax(
-            self, self.myPieces, self.rivalPieces, [], 0)
+        return []
 
     def neighbor_tiles_iter(self, p: int, q: int) -> TilesGenerator:
         """
@@ -188,26 +187,6 @@ def is_valid_initial_placement(player: Player, piece: str, p: int, q: int) -> bo
             return False
 
     return neighboring_my and not neighboring_opponent
-
-
-def minimax(
-    player: Player,
-    my_pieces: dict[str, int],
-    opponents_pieces: dict[str, int],
-    move: int,
-    depth: int,
-    if depth > 5:
-    alpha: int = -(10**9),
-    beta: int = 10**9,
-) -> tuple[int, Move]:
-        return
-
-    for piece, (piece_x, piece_y) in player.my_pieces_iter():
-        for x, y in player.empty_cells_iter():
-            if not is_valid_move(player.board, piece, x, y):
-                continue
-
-            print(piece, piece_x, piece_y, x, y)
 
 
 def updatePlayers(move, activePlayer, passivePlayer):
