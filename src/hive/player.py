@@ -1,6 +1,8 @@
+from __future__ import annotations
 import hive.base as Base
 import random
 from typing import Generator, TypeAlias
+from enum import Enum
 
 
 # Player template for HIVE --- ALP semestral work
@@ -12,6 +14,30 @@ from typing import Generator, TypeAlias
 BoardData: TypeAlias = dict[int, dict[int, str]]
 Tile: TypeAlias = tuple[int, int]
 TilesGenerator: TypeAlias = Generator[Tile, None, None]
+class Node:
+    class State(Enum):
+        RUNNING = 0
+        WIN = 1
+        LOSS = 2
+        DRAW = 3
+
+        def is_end(self) -> bool:
+            return self != Node.State.RUNNING
+
+    move: Move
+    player_is_upper: bool
+    score: int
+    children: list[Node]
+    depth: int
+    state: Node.State
+
+    def __init__(self, move: Move, player_is_upper: bool, initial_score: int) -> None:
+        self.move = move
+        self.player_is_upper = player_is_upper
+        self.score = initial_score
+        self.children = []
+        self.depth = 0
+        self.state = Node.State.RUNNING
 
 
 class Player(Base.Board):
