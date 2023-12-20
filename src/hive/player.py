@@ -17,28 +17,28 @@ Move: TypeAlias = list[str, int, int, int,
                        int] | list[str, None, None, int, int]
 
 
-def play_move(board: BoardData, move: Move) -> BoardData:
-    piece, fromP, fromQ, toP, toQ = move
+def play_move(board: BoardData, move: Move) -> None:
+    piece, from_p, from_q, to_p, to_q = move
 
     # add the piece to its new position
-    board[toP][toQ] = board[toP][toQ] + piece
+    board[to_p][to_q] = board[to_p][to_q] + piece
 
-    if fromP is not None:
+    if from_p is not None:
         # remove the piece from its old position
-        assert board[fromP][fromQ][-1] == piece
-        board[fromP][fromQ] = board[fromP][fromQ][:-1]
+        assert board[from_p][from_q][-1] == piece
+        board[from_p][from_q] = board[from_p][from_q][:-1]
 
 
 def reverse_move(board: BoardData, move: Move) -> None:
-    piece, fromP, fromQ, toP, toQ = move
+    piece, from_p, from_q, to_p, to_q = move
 
-    if fromP is not None:
+    if from_p is not None:
         # add the piece back to its old position
-        board[fromP][fromQ] = board[fromP][fromQ] + board[toP][toQ]
+        board[from_p][from_q] = board[from_p][from_q] + board[to_p][to_q]
 
     # remove the piece from its new position
-    assert board[toP][toQ][-1] == piece
-    board[toP][toQ] = board[toP][toQ][:-1]
+    assert board[to_p][to_q][-1] == piece
+    board[to_p][to_q] = board[to_p][to_q][:-1]
 
 
 class Node:
