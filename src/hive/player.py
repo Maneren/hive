@@ -66,6 +66,30 @@ class Node:
         self.depth = 0
         self.state = Node.State.RUNNING
 
+    def next_depth(self, player: Player) -> None:
+        assert not self.state.is_end()
+
+        self.depth += 1
+
+        if self.depth == 1:
+            self.initialize_children(player)
+            return
+
+        play_move(player.board, self.move)
+
+        for child in self.children:
+            child.next_depth(board)
+
+        reverse_move(player.board, self.move)
+
+    def initialize_children(self, board: BoardData) -> None:
+        play_move(player.board, self.move)
+
+        for move in :
+            self.children.append(Node(move, not self.player_is_upper, 0))
+
+        reverse_move(player.board, self.move)
+
 
 class Player(Base.Board):
     def __init__(
