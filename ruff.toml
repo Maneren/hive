@@ -1,0 +1,3 @@
+select = ["E", "F", "N", "Q", "ANN", "ARG", "TCH", "SIM", "RET", "FA", "C4", "B", "TRY"]
+ignore = ["ANN101", "ANN102", "ANN401"]
+exclude = ["base.py"]
