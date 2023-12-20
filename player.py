@@ -58,7 +58,9 @@ class Node:
     depth: int
     state: Node.State
 
-    def __init__(self, move: Move, player_is_upper: bool, initial_score: int) -> None:
+    def __init__(
+        self, move: Move, player_is_upper: bool, initial_score: int = 0
+    ) -> None:
         self.move = move
         self.player_is_upper = player_is_upper
         self.score = initial_score
@@ -78,15 +80,15 @@ class Node:
         play_move(player.board, self.move)
 
         for child in self.children:
-            child.next_depth(board)
+            child.next_depth(player)
 
         reverse_move(player.board, self.move)
 
-    def initialize_children(self, board: BoardData) -> None:
+    def initialize_children(self, player: Player) -> None:
         play_move(player.board, self.move)
 
-        for move in []:
-            self.children.append(Node(move, not self.player_is_upper, 0))
+        for move in player.valid_moves():
+            self.children.append(Node(move, not self.player_is_upper))
 
         reverse_move(player.board, self.move)
 
