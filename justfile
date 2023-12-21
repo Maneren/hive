@@ -3,8 +3,8 @@ run:
     python player.py
 
 check:
-    ruff check src/
-    mypy src/
+    ruff check *.py
+    mypy --strict *.py
 
 test:
     pytest
