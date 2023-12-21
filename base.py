@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 import math
 from typing import TypeAlias
+
 from PIL import Image, ImageDraw
 
 # DO NOT MODIFY THIS FILE
@@ -29,12 +31,8 @@ class Board:
         myPieces: PiecesDict,
         rivalPieces: PiecesDict,
     ) -> None:
-        self.size = size  # integer, size of the board
-        self.myMove = 0  # integer, index of actual move
-        # dict of board, use self.board[p][q] to acess cell (p,q)
-        self.board = {}
-        # if true, by figures are big (A,Q,S,G,B),
-        # otherwise there are small (a,q,s,g,b)
+        self.size = size  # size of the board
+        self.myMove = 0  # index of actual move
         self.myColorIsUpper = myIsUpper
         self.algorithmName = "some algorithm"
         self.playerName = "some name"
@@ -42,34 +40,32 @@ class Board:
             0  # filled by Brute, if True, player is run in tournament mode
         )
 
-        self.myPieces = (
-            myPieces.copy()
-        )  # dict of key=animal, value = number of available, self.myPieces["b"] = 3
+        # dict of key=animal, value = number of available pieces of given type
+        self.myPieces = myPieces.copy()
         self._myPiecesOriginal = myPieces.copy()
 
         self.rivalPieces = rivalPieces.copy()
         self._rivalPiecesOriginal = rivalPieces.copy()
 
-        # the rest of the coe is just for drawing to png
+        # the rest of the code is just for drawing to png
 
-        self._images = {}
-        self._imagesSmall = {}
+        image_names = ["ant", "beetle", "bee", "spider", "grasshopper"]
 
-        for imagename in ["ant", "beetle", "bee", "spider", "grasshopper"]:
-            self._images[imagename] = Image.open(f"images/{imagename}.png").resize(
-                (70, 70)
-            )
-            self._imagesSmall[imagename] = Image.open(f"images/{imagename}.png").resize(
-                (20, 20)
-            )
+        self._images = {
+            name: Image.open(f"images/{name}.png").resize((70, 70))
+            for name in image_names
+        }
+
+        self._images_small = {
+            name: Image.open(f"images/{name}.png").resize((20, 20))
+            for name in image_names
+        }
 
         # create empty board as a dictionary
-        for p in range(-self.size, self.size):
-            for q in range(-self.size, self.size):
-                if self.inBoard(p, q):
-                    if p not in self.board:
-                        self.board[p] = {}
-                    self.board[p][q] = ""
+        self.board = {
+            p: {q: "" for q in range(-size, size) if self.inBoard(p, q)}
+            for p in range(-size, size)
+        }
 
         # this is for visualization and to synchronize colors between png/js
         self._colors = {}
@@ -88,12 +84,7 @@ class Board:
 
     def inBoard(self, p: int, q: int) -> bool:
         """return True if (p,q) is valid coordinate"""
-        return (
-            (q >= 0)
-            and (q < self.size)
-            and (p >= -(q // 2))
-            and (p < (self.size - q // 2))
-        )
+        return 0 <= q < self.size and -q // 2 <= p <= self.size - q // 2
 
     def rotateRight(self, p: int, q: int) -> Tile:
         pp = -q
@@ -105,33 +96,34 @@ class Board:
         qq = -p
         return pp, qq
 
-    def letter2image(self, lastLetter):
-        impaste = None
-        impaste2 = None
-        lastLetter = lastLetter.lower()
-        if lastLetter == "q":
-            impaste, impaste2 = self._images["bee"], self._imagesSmall["bee"]
-        elif lastLetter == "b":
-            impaste, impaste2 = self._images["beetle"], self._imagesSmall["beetle"]
-        elif lastLetter == "s":
-            impaste, impaste2 = self._images["spider"], self._imagesSmall["spider"]
-        elif lastLetter == "g":
-            impaste, impaste2 = (
-                self._images["grasshopper"],
-                self._imagesSmall["grasshopper"],
-            )
-        elif lastLetter == "a":
-            impaste, impaste2 = self._images["ant"], self._imagesSmall["ant"]
-        return impaste, impaste2
+    def letter2image(self, last_letter: str) -> tuple[Image.Image, Image.Image]:
+        last_letter = last_letter.lower()
+
+        image_names_map = {
+            "b": "beetle",
+            "s": "spider",
+            "g": "grasshopper",
+            "q": "bee",
+            "a": "ant",
+        }
+
+        if last_letter not in image_names_map:
+            return None, None
+
+        image_name = image_names_map[last_letter]
+
+        return self._images[image_name], self._images_small[image_name]
 
     def saveImage(self, filename, HL={}, LINES=[], HLA={}):
-        """draw actual board to png. Empty cells are white, -1 = red, 1 = green, other values according to
-        this list
+        """draw actual board to png. Empty cells are white, -1 = red,
+        1 = green, other values according to this list:
         -1 red, 0 = white, 1 = green
+
         HL is dict of coordinates and colors, e.g.
         HL[(3,4)] = #RRGGBB #will use color #RRGGBB to highlight cell (3,4)
         LINES is list of extra lines to be drawn in format
-        LINES = [ line1, line2 ,.... ], where each line is [#RRGGBB, p1, q1, p2,q2] - will draw line from cell (p1,q1) to cell (p2,q2)
+        LINES = [ line1, line2 ,.... ], where each line is [#RRGGBB, p1, q1, p2, q2]
+        - will draw line from cell (p1,q1) to cell (p2,q2)
         """
 
         def pq2hexa(p, q):
@@ -156,10 +148,9 @@ class Board:
                     color = "#ff00ff"
 
                     lastLetter = animal
-                    if lastLetter.islower():
-                        color = self._colors[-1]
-                    else:
-                        color = self._colors[1]
+                    color = (
+                        self._colors[-1] if lastLetter.islower() else self._colors[1]
+                    )
                     if v < piecesToDraw[animal] and animal in HLA:
                         color = HLA[animal]
 
@@ -202,12 +193,9 @@ class Board:
                     color = self._colors[0]
                 else:
                     lastLetter = self.board[p][q][-1]
-                    if lastLetter.islower():
-                        color = self._colors[-1]
-                    else:
-                        color = self._colors[1]
-                #                    if lastLetter.lower() in "bB" and len(self.board[p][q]) > 1:
-                #                        color = self._colors[2] #red beetle
+                    color = (
+                        self._colors[-1] if lastLetter.islower() else self._colors[1]
+                    )
 
                 if (p, q) in HL:
                     color = HL[(p, q)]
@@ -263,36 +251,32 @@ class Board:
         for p in board:
             for q in board[p]:
                 value = board[p][q]
-                if value == "":
-                    value = ".."
-                print(value, end="  ")
+                print(value or "..", end="  ")
             print()
 
     def isMyColor(self, p: int, q: int, board: BoardData) -> bool:
         """assuming board[p][q] is not empty"""
-        tile = self.board[p][q]
         return (
-            tile.isupper() == self.myColorIsUpper
-            or tile.islower() != self.myColorIsUpper
+            board[p][q].isupper() == self.myColorIsUpper
+            or board[p][q].islower() != self.myColorIsUpper
         )
 
     def isEmpty(self, p: int, q: int, board: dict[int, dict[int, str]]) -> bool:
         return board[p][q] == ""
 
-    def a2c(self, p, q):
+    def a2c(self, p: int, q: int) -> tuple[int, int, int]:
         x = p
         z = q
         y = -x - z
         return x, y, z
 
-    def c2a(self, x, y, z):
+    def c2a(self, x: int, _y: int, z: int) -> tuple[int, int]:
         p = x
         q = z
         return p, q
 
-    def distance(self, p1, q1, p2, q2):
+    def distance(self, p1: int, q1: int, p2: int, q2: int) -> int:
         """return distance between two cells (p1,q1) and (p2,q2)"""
         x1, y1, z1 = self.a2c(p1, q1)
         x2, y2, z2 = self.a2c(p2, q2)
-        dist = (abs(x1 - x2) + abs(y1 - y2) + abs(z1 - z2)) // 2
-        return dist
+        return (abs(x1 - x2) + abs(y1 - y2) + abs(z1 - z2)) // 2
