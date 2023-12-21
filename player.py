@@ -164,25 +164,18 @@ class Player(Board):
 
         return []
 
+    DIRECTIONS = ((0, -1), (1, -1), (1, 0), (0, 1), (-1, 1), (-1, 0))
+
     def neighbors(self, p: int, q: int) -> Iterator[Cell]:
         """
         Iterator over all tiles neighboring the tile (p,q)
         in the hexagonal board
         """
-        # we have 3 possible axis
-        for i in range(3):
-            # two neighbors on each
-            for j in [-1, 1]:
-                # for axis 0 and 2 we modify p, and for 1 q
-                if i % 2 == 0:
-                    x = p + j
-                    y = q
-                else:
-                    x = p
-                    y = q + j
-
-                if self.inBoard(x, y):
-                    yield x, y
+        yield from (
+            (p + dp, q + dq)
+            for dp, dq in self.DIRECTIONS
+            if self.inBoard(p + dp, q + dq)
+        )
 
     def empty_neighbors(self, p: int, q: int) -> Iterator[Cell]:
         return (cell for cell in self.neighbors(p, q) if self.is_empty(*cell))
