@@ -1,9 +1,9 @@
 from __future__ import annotations
-import base as Base
-from typing import TypeAlias
-from collections.abc import Generator
-from enum import Enum
 
+from enum import IntEnum
+from typing import Iterator
+
+from base import Board
 
 # Player template for HIVE --- ALP semestral work
 # Vojta Vonasek, 2023
@@ -11,10 +11,9 @@ from enum import Enum
 
 # PUT ALL YOUR IMPLEMENTATION INTO THIS FILE
 
-BoardData: TypeAlias = dict[int, dict[int, str]]
-Tile: TypeAlias = tuple[int, int]
-TilesGenerator: TypeAlias = Generator[Tile, None, None]
-Move: TypeAlias = list[str, int, int, int, int] | list[str, None, None, int, int]
+BoardData = dict[int, dict[int, str]]
+Cell = tuple[int, int]
+Move = list[str, int, int, int, int] | list[str, None, None, int, int]
 
 
 def play_move(board: BoardData, move: Move) -> None:
@@ -42,14 +41,14 @@ def reverse_move(board: BoardData, move: Move) -> None:
 
 
 class Node:
-    class State(Enum):
+    class State(IntEnum):
         RUNNING = 0
         WIN = 1
         LOSS = 2
         DRAW = 3
 
         def is_end(self) -> bool:
-            return self != Node.State.RUNNING
+            return self > 0
 
     move: Move
     player_is_upper: bool
@@ -59,7 +58,10 @@ class Node:
     state: Node.State
 
     def __init__(
-        self, move: Move, player_is_upper: bool, initial_score: int = 0
+        self,
+        move: Move,
+        player_is_upper: bool,
+        initial_score: int = 0,
     ) -> None:
         self.move = move
         self.player_is_upper = player_is_upper
@@ -87,13 +89,13 @@ class Node:
     def initialize_children(self, player: Player) -> None:
         play_move(player.board, self.move)
 
-        for move in player.valid_moves():
+        for move in player.valid_moves:
             self.children.append(Node(move, not self.player_is_upper))
 
         reverse_move(player.board, self.move)
 
 
-class Player(Base.Board):
+class Player(Board):
     def __init__(
         self,
         player_name: str,
@@ -105,49 +107,49 @@ class Player(Base.Board):
         """
         Do not change this method
         """
-        Base.Board.__init__(self, my_is_upper, size, my_pieces, rival_pieces)
+        super().__init__(my_is_upper, size, my_pieces, rival_pieces)
         self.playerName = player_name
         self.algorithmName = "maneren"
 
-    def cells(self) -> TilesGenerator:
+    @property
+    def cells(self) -> Iterator[Cell]:
         """
         Iterator over all cells
         """
         yield from ((p, q) for p in self.board for q in self.board[p])
 
-    def empty_cells(self) -> TilesGenerator:
+    @property
+    def empty_cells(self) -> Iterator[Cell]:
         """
         Iterator over all empty cells
         """
-        board = self.board
-        yield from (tile for tile in self.cells() if self.isEmpty(*tile, board))
+        yield from (tile for tile in self.cells if self.is_empty(*tile))
 
-    def nonempty_cells(self) -> TilesGenerator:
+    @property
+    def nonempty_cells(self) -> Iterator[Cell]:
         """
         Iterator over all nonempty cells
         """
-        yield from (
-            tile for tile in self.cells() if not self.isEmpty(*tile, self.board)
-        )
+        yield from (tile for tile in self.cells if not self.is_empty(*tile))
 
-    def my_pieces(self) -> Generator[tuple[str, Tile], None, None]:
+    @property
+    def my_pieces(self) -> Iterator[tuple[str, Cell]]:
         """
         Iterator over all my pieces on the board
         """
-        board = self.board
-
         yield from (
-            (board[p][q], (p, q))
-            for p, q in self.nonempty_cells()
-            if self.isMyColor(p, q, board)
+            (self[p, q], (p, q))
+            for p, q in self.nonempty_cells
+            if self.is_my_cell(p, q)
         )
 
-    def valid_moves(self) -> Generator[Move, None, None]:
+    @property
+    def valid_moves(self) -> Iterator[Move]:
         """
         Iterator over all valid moves
         """
 
-        raise RuntimeError("not implemented")
+        raise NotImplementedError
 
     def move(self) -> Move | list[None]:
         """
@@ -158,11 +160,11 @@ class Player(Base.Board):
         this has to stay the same for compatibility with BRUTE
         """
 
-        nodes = self.valid_moves()
+        nodes = self.valid_moves
 
         return []
 
-    def neighbor_tiles(self, p: int, q: int) -> TilesGenerator:
+    def neighbors(self, p: int, q: int) -> Iterator[Cell]:
         """
         Iterator over all tiles neighboring the tile (p,q)
         in the hexagonal board
@@ -182,15 +184,28 @@ class Player(Base.Board):
                 if self.inBoard(x, y):
                     yield x, y
 
-    def empty_neighbor_tiles(self, p: int, q: int) -> TilesGenerator:
-        return (
-            tile
-            for tile in self.neighbor_tiles(p, q)
-            if self.isEmpty(*tile, self.board)
-        )
+    def empty_neighbors(self, p: int, q: int) -> Iterator[Cell]:
+        return (cell for cell in self.neighbors(p, q) if self.is_empty(*cell))
 
-    def is_my_tile(self, p: int, q: int) -> bool:
-        return self.isMyColor(p, q, self.board)
+    def nonempty_neighbors(self, p: int, q: int) -> Iterator[Cell]:
+        return (cell for cell in self.neighbors(p, q) if not self.is_empty(*cell))
+
+    def is_my_cell(self, p: int, q: int) -> bool:
+        cell = self[p, q]
+        is_upper = self.myColorIsUpper
+
+        return cell.isupper() == is_upper or cell.islower() != is_upper
+
+    def is_empty(self, p: int, q: int) -> bool:
+        return self.board[p][q] == ""
+
+    def __getitem__(self, cell: Cell) -> str:
+        p, q = cell
+        return self.board[p][q]
+
+    def __setitem__(self, cell: Cell, value: str) -> None:
+        p, q = cell
+        self.board[p][q] = value
 
 
 def is_valid_move(board: BoardData, piece: str, x: int, y: int) -> bool:
@@ -198,17 +213,9 @@ def is_valid_move(board: BoardData, piece: str, x: int, y: int) -> bool:
 
 
 def is_valid_initial_placement(player: Player, piece: str, p: int, q: int) -> bool:
-    neighboring_my = False
-    neighboring_opponent = False
-
-    for np, nq in player.empty_neighbor_tiles(p, q):
-        if player.is_my_tile(np, nq):
-            neighboring_my = True
-        else:
-            # initial placement can't be neighboring opponent's pieces
-            return False
-
-    return neighboring_my and not neighboring_opponent
+    return not any(
+        not player.is_my_cell(*cell) for cell in player.nonempty_neighbors(p, q)
+    )
 
 
 def update_players(move: Move, active_player: Player, passive_player: Player) -> None:
@@ -243,11 +250,11 @@ def main() -> None:
         "g": 2,
     }  # key is animal, value is how many is available for placing
     big_figures = {
-        figure.upper(): small_figures[figure] for figure in small_figures
+        figure.upper(): val for figure, val in small_figures.items()
     }  # same, but with upper case
 
     p1 = Player("player1", True, board_size, small_figures, big_figures)
-    p1 = Player("player2", True, board_size, big_figures, small_figures)
+    p2 = Player("player2", True, board_size, big_figures, small_figures)
 
     filename = "output/begin.png"
     p1.saveImage(filename)
@@ -256,19 +263,19 @@ def main() -> None:
     while True:
         move = p1.move()
         print("P1 returned", move)
-        update_players(move, p1, p1)  # update P1 and P2 according to the move
-        filename = "output/move-{:03d}-player1.png".format(move_idx)
+        update_players(move, p1, p2)  # update P1 and P2 according to the move
+        filename = "output/move-{move_idx:03d}-player1.png"
         p1.saveImage(filename)
 
         move = p1.move()
         print("P2 returned", move)
-        update_players(move, p1, p1)  # update P2 and P1 according to the move
-        filename = "output/move-{:03d}-player2.png".format(move_idx)
+        update_players(move, p2, p1)  # update P2 and P1 according to the move
+        filename = "output/move-{move_idx:03d}-player2.png"
         p1.saveImage(filename)
 
         move_idx += 1
         p1.myMove = move_idx
-        p1.myMove = move_idx
+        p2.myMove = move_idx
 
         if move_idx > 50:
             print("End of the test game")
