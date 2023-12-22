@@ -118,28 +118,28 @@ class Player(Board):
         """
         Iterator over all cells
         """
-        yield from ((p, q) for p in self.board for q in self.board[p])
+        return ((p, q) for p in self.board for q in self.board[p])
 
     @property
     def empty_cells(self) -> Iterator[Cell]:
         """
         Iterator over all empty cells
         """
-        yield from (tile for tile in self.cells if self.is_empty(*tile))
+        return (tile for tile in self.cells if self.is_empty(*tile))
 
     @property
     def nonempty_cells(self) -> Iterator[Cell]:
         """
         Iterator over all nonempty cells
         """
-        yield from (tile for tile in self.cells if not self.is_empty(*tile))
+        return (tile for tile in self.cells if not self.is_empty(*tile))
 
     @property
     def my_pieces(self) -> Iterator[tuple[str, Cell]]:
         """
         Iterator over all my pieces on the board
         """
-        yield from (
+        return (
             (self[p, q], (p, q))
             for p, q in self.nonempty_cells
             if self.is_my_cell(p, q)
@@ -171,7 +171,7 @@ class Player(Board):
         Iterator over all tiles neighboring the tile (p,q)
         in the hexagonal board
         """
-        yield from (
+        return (
             (p + dp, q + dq) for dp, dq in DIRECTIONS if self.inBoard(p + dp, q + dq)
         )
 
