@@ -196,6 +196,25 @@ class Player(Board):
     def has_nonempty_neighbors(self, p: int, q: int) -> bool:
         return any(self.nonempty_neighbors(p, q))
 
+    def horizontal(self, p: int, q: int) -> Iterator[Cell]:
+        """
+        Iterator over all tiles on the same horizontal line as (p,q)
+        """
+        return ((p + dp, q) for dp in range(-q // 2, self.size - q // 2))
+
+    def diagonal_l(self, p: int, _q: int) -> Iterator[Cell]:
+        """
+        Iterator over all tiles on the same left diagoal line as (p,q)
+        """
+        return ((p, nq) for nq in range(self.size) if self.in_board(p, nq))
+
+    def diagonal_r(self, p: int, q: int) -> Iterator[Cell]:
+        """
+        Iterator over all tiles on the same right diagonal line as (p,q)
+        """
+        base_p = p + q
+        return ((base_p - nq, nq) for nq in range(self.size) if self.in_board(nq, q))
+
     def is_my_cell(self, p: int, q: int) -> bool:
         cell = self[p, q]
         is_upper = self.myColorIsUpper
