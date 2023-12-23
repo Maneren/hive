@@ -146,13 +146,9 @@ class Player(Board):
     @property
     def my_pieces(self) -> Iterator[tuple[str, Cell]]:
         """
-        Iterator over all my pieces on the board
+        Iterator over all my pieces on the board. Uses self.hive
         """
-        return (
-            (self[p, q], (p, q))
-            for p, q in self.nonempty_cells
-            if self.is_my_cell(p, q)
-        )
+        return ((self[p, q], (p, q)) for p, q in self.hive if self.is_my_cell(p, q))
 
     @property
     def valid_moves(self) -> Iterator[Move]:
@@ -166,30 +162,8 @@ class Player(Board):
         """
         Iterator over all cells around the hive
         """
-        if not self.hive:
-            return
-
-        start_in_hive = next(iter(self.hive))
-
-        start_around = next(self.empty_neighbors(*start_in_hive))
-
-        stack = [start_around]
-        visited = {start_around}
-
-        while stack:
-            current = stack.pop()
-
-            yield current
-
-            next_neighbors = (
-                neighbor
-                for neighbor in self.empty_neighbors(*current)
-                if neighbor not in visited and self.has_nonempty_neighbors(*neighbor)
-            )
-
-            for neighbor in next_neighbors:
-                visited.add(neighbor)
-                stack.append(neighbor)
+        for p, q in self.hive:
+            yield from self.empty_neighbors(p, q)
 
     def move(self) -> Move | list[None]:
         """
