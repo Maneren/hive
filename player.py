@@ -162,6 +162,35 @@ class Player(Board):
 
         raise NotImplementedError
 
+    def cells_around_hive(self) -> Iterator[Cell]:
+        """
+        Iterator over all cells around the hive
+        """
+        if not self.hive:
+            return
+
+        start_in_hive = next(iter(self.hive))
+
+        start_around = next(self.empty_neighbors(*start_in_hive))
+
+        stack = [start_around]
+        visited = {start_around}
+
+        while stack:
+            current = stack.pop()
+
+            yield current
+
+            next_neighbors = (
+                neighbor
+                for neighbor in self.empty_neighbors(*current)
+                if neighbor not in visited and self.has_nonempty_neighbors(*neighbor)
+            )
+
+            for neighbor in next_neighbors:
+                visited.add(neighbor)
+                stack.append(neighbor)
+
     def move(self) -> Move | list[None]:
         """
         return [animal, oldP, oldQ, newP, newQ],
