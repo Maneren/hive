@@ -219,6 +219,9 @@ class Player(Board):
     def nonempty_neighbors(self, p: int, q: int) -> Iterator[Cell]:
         return (cell for cell in self.neighbors(p, q) if not self.is_empty(*cell))
 
+    def has_nonempty_neighbors(self, p: int, q: int) -> bool:
+        return any(self.nonempty_neighbors(p, q))
+
     def is_my_cell(self, p: int, q: int) -> bool:
         cell = self[p, q]
         is_upper = self.myColorIsUpper
