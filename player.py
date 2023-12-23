@@ -241,13 +241,11 @@ class Player(Board):
     def is_valid_move(self, piece: str, x: int, y: int) -> bool:
         return self.board[x][y][-1] == piece
 
-    def is_valid_initial_placement(self, p: int, q: int) -> bool:
+    def is_valid_placement(self, p: int, q: int) -> bool:
         """
-        Check if (p,q) is a valid initial placement. Returns True if the board is empty
+        Check if (p,q) is a valid placement for a new piece. Assumes
+        there are already other pieces on the board
         """
-        if self.myMove == 0 and not self.hive:
-            return True
-
         return all(self.is_my_cell(*cell) for cell in self.nonempty_neighbors(p, q))
 
 
