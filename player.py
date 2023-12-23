@@ -19,6 +19,9 @@ DIRECTIONS = ((0, -1), (1, -1), (1, 0), (0, 1), (-1, 1), (-1, 0))
 
 
 def play_move(board: BoardData, move: Move) -> None:
+    """
+    Play the given move
+    """
     piece, from_p, from_q, to_p, to_q = move
 
     # add the piece to its new position
@@ -31,6 +34,9 @@ def play_move(board: BoardData, move: Move) -> None:
 
 
 def reverse_move(board: BoardData, move: Move) -> None:
+    """
+    Reverse the given move
+    """
     piece, from_p, from_q, to_p, to_q = move
 
     if from_p is not None:
@@ -43,6 +49,9 @@ def reverse_move(board: BoardData, move: Move) -> None:
 
 
 def cells_are_neighbors(cell1: Cell, cell2: Cell) -> bool:
+    """
+    Check if two cells are neighbors
+    """
     p1, q1 = cell1
     p2, q2 = cell2
     return (p1 - p2, q1 - q2) in DIRECTIONS
@@ -50,6 +59,10 @@ def cells_are_neighbors(cell1: Cell, cell2: Cell) -> bool:
 
 class Node:
     class State(IntEnum):
+        """
+        State of the game
+        """
+
         RUNNING = 0
         WIN = 1
         LOSS = 2
@@ -79,6 +92,9 @@ class Node:
         self.state = Node.State.RUNNING
 
     def next_depth(self, player: Player) -> None:
+        """
+        Compute the next depth using the minimax algorithm
+        """
         assert not self.state.is_end()
 
         self.depth += 1
@@ -95,6 +111,9 @@ class Node:
         reverse_move(player.board, self.move)
 
     def initialize_children(self, player: Player) -> None:
+        """
+        Initialize the children of the current node
+        """
         play_move(player.board, self.move)
 
         for move in player.valid_moves:
@@ -115,7 +134,9 @@ class Player(Board):
         rival_pieces: dict[str, int],
     ) -> None:
         """
-        Do not change this method
+        Create a new player.
+
+        *Note: the API has to stay this way to be compatible with Brute*
         """
         super().__init__(my_is_upper, size, my_pieces, rival_pieces)
         self.playerName = player_name
@@ -163,22 +184,25 @@ class Player(Board):
         Iterator over all cells around the hive
         """
         for p, q in self.hive:
-            yield from self.empty_neighbors(p, q)
+            yield from self.empty_neighboring_cells(p, q)
 
     def move(self) -> Move | list[None]:
         """
-        return [animal, oldP, oldQ, newP, newQ],
-        or [animal, None, None, newP, newQ]
-        or [] if no move is possible
+        Returns a best move for the current self.board.
 
-        this has to stay the same for compatibility with BRUTE
+        Format:
+            [piece, oldP, oldQ, newP, newQ] - move from (oldP, oldQ) to (newP, newQ)
+            [piece, None, None, newP, newQ] - place new at (newP, newQ)
+            [] - no move is possible
+
+        *Note: the API has to stay this way to be compatible with Brute*
         """
 
         self.hive = set(self.nonempty_cells)
 
         return []
 
-    def neighbors(self, p: int, q: int) -> Iterator[Cell]:
+    def neighboring_cells(self, p: int, q: int) -> Iterator[Cell]:
         """
         Iterator over all cells neighboring the cells (p,q)
         in the hexagonal board
@@ -187,14 +211,25 @@ class Player(Board):
             (p + dp, q + dq) for dp, dq in DIRECTIONS if self.in_board(p + dp, q + dq)
         )
 
-    def empty_neighbors(self, p: int, q: int) -> Iterator[Cell]:
-        return (cell for cell in self.neighbors(p, q) if self.is_empty(*cell))
+    def empty_neighboring_cells(self, p: int, q: int) -> Iterator[Cell]:
+        """
+        Iterator over all cells neighboring (p,q) that are empty
+        """
+        return (cell for cell in self.neighboring_cells(p, q) if self.is_empty(*cell))
 
-    def nonempty_neighbors(self, p: int, q: int) -> Iterator[Cell]:
-        return (cell for cell in self.neighbors(p, q) if not self.is_empty(*cell))
+    def neighbors(self, p: int, q: int) -> Iterator[Cell]:
+        """
+        Iterator over all cells neighboring (p,q) that aren't empty
+        """
+        return (
+            cell for cell in self.neighboring_cells(p, q) if not self.is_empty(*cell)
+        )
 
-    def has_nonempty_neighbors(self, p: int, q: int) -> bool:
-        return any(self.nonempty_neighbors(p, q))
+    def has_neighbor(self, p: int, q: int) -> bool:
+        """
+        Check if the given cell has at least one neighbor
+        """
+        return any(self.neighbors(p, q))
 
     def horizontal(self, p: int, q: int) -> Iterator[Cell]:
         """
@@ -238,8 +273,9 @@ class Player(Board):
         Check if (p,q) is a valid placement for a new piece. Assumes
         there are already other pieces on the board
         """
-        return all(self.is_my_cell(*cell) for cell in self.nonempty_neighbors(p, q))
+        return all(self.is_my_cell(*cell) for cell in self.neighbors(p, q))
 
+    ## allows indexing the board directly using player[p,q]
     def __getitem__(self, cell: Cell) -> str:
         p, q = cell
         return self.board[p][q]
