@@ -349,6 +349,20 @@ class Player(Board):
         p, q = cell
         self.board[p][q] = value
 
+    def __str__(self) -> str:
+        lines = []
+
+        for q in range(self.size):
+            row = [
+                self[p, q] or "."
+                for p in range(-self.size, self.size)
+                if self.in_board(p, q)
+            ]
+            offset = " " if q % 2 else ""
+            lines.append(offset + " ".join(row))
+
+        return "\n".join(lines)
+
 
 def update_players(
     move: MoveBrute,
