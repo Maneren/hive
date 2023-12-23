@@ -210,7 +210,7 @@ class Player(Board):
         in the hexagonal board
         """
         return (
-            (p + dp, q + dq) for dp, dq in DIRECTIONS if self.inBoard(p + dp, q + dq)
+            (p + dp, q + dq) for dp, dq in DIRECTIONS if self.in_board(p + dp, q + dq)
         )
 
     def empty_neighbors(self, p: int, q: int) -> Iterator[Cell]:
@@ -227,6 +227,12 @@ class Player(Board):
 
     def is_empty(self, p: int, q: int) -> bool:
         return self.board[p][q] == ""
+
+    def in_board(self, p: int, q: int) -> bool:
+        """
+        Check if (p,q) is a valid coordinate within the board
+        """
+        return 0 <= q < self.size and -q // 2 <= p <= self.size - q // 2
 
     def __getitem__(self, cell: Cell) -> str:
         p, q = cell
