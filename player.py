@@ -134,14 +134,14 @@ class Player(Board):
         """
         Iterator over all empty cells
         """
-        return (tile for tile in self.cells if self.is_empty(*tile))
+        return (cell for cell in self.cells if self.is_empty(*cell))
 
     @property
     def nonempty_cells(self) -> Iterator[Cell]:
         """
         Iterator over all nonempty cells
         """
-        return (tile for tile in self.cells if not self.is_empty(*tile))
+        return (cell for cell in self.cells if not self.is_empty(*cell))
 
     @property
     def my_pieces(self) -> Iterator[tuple[str, Cell]]:
@@ -180,7 +180,7 @@ class Player(Board):
 
     def neighbors(self, p: int, q: int) -> Iterator[Cell]:
         """
-        Iterator over all tiles neighboring the tile (p,q)
+        Iterator over all cells neighboring the cells (p,q)
         in the hexagonal board
         """
         return (
@@ -198,19 +198,19 @@ class Player(Board):
 
     def horizontal(self, p: int, q: int) -> Iterator[Cell]:
         """
-        Iterator over all tiles on the same horizontal line as (p,q)
+        Iterator over all cells on the same horizontal line as (p,q)
         """
         return ((p + dp, q) for dp in range(-q // 2, self.size - q // 2))
 
     def diagonal_l(self, p: int, _q: int) -> Iterator[Cell]:
         """
-        Iterator over all tiles on the same left diagoal line as (p,q)
+        Iterator over all cells on the same left diagoal line as (p,q)
         """
         return ((p, nq) for nq in range(self.size) if self.in_board(p, nq))
 
     def diagonal_r(self, p: int, q: int) -> Iterator[Cell]:
         """
-        Iterator over all tiles on the same right diagonal line as (p,q)
+        Iterator over all cells on the same right diagonal line as (p,q)
         """
         base_p = p + q
         return ((base_p - nq, nq) for nq in range(self.size) if self.in_board(nq, q))
