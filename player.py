@@ -17,6 +17,15 @@ Move = list[str, int, int, int, int] | list[str, None, None, int, int]
 
 DIRECTIONS = ((0, -1), (1, -1), (1, 0), (0, 1), (-1, 1), (-1, 0))
 
+SQUEEZE_DIRECTION_LR_MAP = {
+    (0, -1): ((-1, 0), (1, -1)),
+    (0, 1): ((1, 0), (-1, 1)),
+    (1, 0): ((1, -1), (0, 1)),
+    (-1, 0): ((-1, 1), (0, -1)),
+    (1, -1): ((1, 0), (0, -1)),
+    (-1, 1): ((0, 1), (-1, 0)),
+}
+
 
 def play_move(board: BoardData, move: Move) -> None:
     """
@@ -276,6 +285,22 @@ class Player(Board):
         there are already other pieces on the board
         """
         return all(self.is_my_cell(*cell) for cell in self.neighbors(p, q))
+
+    def can_squeeze_through(self, p: int, q: int, np: int, nq: int) -> bool:
+        """
+        Check if a piece can move from (p,q) to (np,nq), ie. there are no other pieces
+        on the sides blocking it.
+        """
+        direction = (np - p, nq - q)
+
+        (lp, lq), (rp, rq) = SQUEEZE_DIRECTION_LR_MAP[direction]
+
+        left = (p + lp, q + lq)
+        right = (p + rp, q + rq)
+
+        return any(
+            self.in_board(*cell) and self.is_empty(*cell) for cell in (left, right)
+        )
 
     ## allows indexing the board directly using player[p,q]
     def __getitem__(self, cell: Cell) -> str:
