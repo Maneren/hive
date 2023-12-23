@@ -230,14 +230,6 @@ class Player(Board):
         """
         return 0 <= q < self.size and -q // 2 <= p <= self.size - q // 2
 
-    def __getitem__(self, cell: Cell) -> str:
-        p, q = cell
-        return self.board[p][q]
-
-    def __setitem__(self, cell: Cell, value: str) -> None:
-        p, q = cell
-        self.board[p][q] = value
-
     def is_valid_move(self, piece: str, x: int, y: int) -> bool:
         return self.board[x][y][-1] == piece
 
@@ -247,6 +239,14 @@ class Player(Board):
         there are already other pieces on the board
         """
         return all(self.is_my_cell(*cell) for cell in self.nonempty_neighbors(p, q))
+
+    def __getitem__(self, cell: Cell) -> str:
+        p, q = cell
+        return self.board[p][q]
+
+    def __setitem__(self, cell: Cell, value: str) -> None:
+        p, q = cell
+        self.board[p][q] = value
 
 
 def update_players(move: Move, active_player: Player, passive_player: Player) -> None:
