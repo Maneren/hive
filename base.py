@@ -68,19 +68,20 @@ class Board:
         }
 
         # this is for visualization and to synchronize colors between png/js
-        self._colors = {}
-        self._colors[-1] = "#fdca40"  # sunglow
-        self._colors[0] = "#ffffff"  # white
-        self._colors[1] = "#947bd3"  # medium purple
-        self._colors[2] = "#ff0000"  # red
-        self._colors[3] = "#00ff00"  # green
-        self._colors[4] = "#0000ff"  # blue
-        self._colors[5] = "#566246"  # ebony
-        self._colors[6] = "#a7c4c2"  # opan
-        self._colors[7] = "#ADACB5"  # silver metalic
-        self._colors[8] = "#8C705F"  # liver chestnut
-        self._colors[9] = "#FA7921"  # pumpkin
-        self._colors[10] = "#566E3D"  # dark olive green
+        self._colors = {
+            -1: "#fdca40",
+            0: "#ffffff",
+            1: "#947bd3",
+            2: "#ff0000",
+            3: "#00ff00",
+            4: "#0000ff",
+            5: "#566246",
+            6: "#a7c4c2",
+            7: "#ADACB5",
+            8: "#8C705F",
+            9: "#FA7921",
+            10: "#566E3D",
+        }
 
     def inBoard(self, p: int, q: int) -> bool:
         """return True if (p,q) is valid coordinate"""
