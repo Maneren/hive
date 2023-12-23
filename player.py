@@ -156,6 +156,10 @@ class Player(Board):
         self.hive = set(self.nonempty_cells)
 
     @property
+    def upper(self) -> bool:
+        return self.myColorIsUpper
+
+    @property
     def cells(self) -> Iterator[Cell]:
         """
         Iterator over all cells
