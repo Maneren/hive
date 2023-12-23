@@ -42,6 +42,12 @@ def reverse_move(board: BoardData, move: Move) -> None:
     board[to_p][to_q] = board[to_p][to_q][:-1]
 
 
+def cells_are_neighbors(cell1: Cell, cell2: Cell) -> bool:
+    p1, q1 = cell1
+    p2, q2 = cell2
+    return (p1 - p2, q1 - q2) in DIRECTIONS
+
+
 class Node:
     class State(IntEnum):
         RUNNING = 0
@@ -198,19 +204,11 @@ class Player(Board):
         p, q = cell
         self.board[p][q] = value
 
+    def is_valid_move(self, piece: str, x: int, y: int) -> bool:
+        return self.board[x][y][-1] == piece
 
-def cells_are_neighbors(cell1: Cell, cell2: Cell) -> bool:
-    p1, q1 = cell1
-    p2, q2 = cell2
-    return (p1 - p2, q1 - q2) in DIRECTIONS
-
-
-def is_valid_move(board: BoardData, piece: str, x: int, y: int) -> bool:
-    return board[x][y][-1] == piece
-
-
-def is_valid_initial_placement(player: Player, piece: str, p: int, q: int) -> bool:
-    return all(player.is_my_cell(*cell) for cell in player.nonempty_neighbors(p, q))
+    def is_valid_initial_placement(self, piece: str, p: int, q: int) -> bool:
+        return all(self.is_my_cell(*cell) for cell in self.nonempty_neighbors(p, q))
 
 
 def update_players(move: Move, active_player: Player, passive_player: Player) -> None:
@@ -261,7 +259,7 @@ def main() -> None:
         update_players(move, p1, p2)  # update P1 and P2 according to the move
         p1.saveImage("output/move-{move_idx:03d}-player1.png")
 
-        move = p1.move()
+        move = p2.move()
         print("P2 returned", move)
         update_players(move, p2, p1)  # update P2 and P1 according to the move
         p1.saveImage("output/move-{move_idx:03d}-player2.png")
