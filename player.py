@@ -104,6 +104,8 @@ class Node:
 
 
 class Player(Board):
+    hive: set[Cell]
+
     def __init__(
         self,
         player_name: str,
@@ -118,6 +120,7 @@ class Player(Board):
         super().__init__(my_is_upper, size, my_pieces, rival_pieces)
         self.playerName = player_name
         self.algorithmName = "maneren"
+        self.hive = set(self.nonempty_cells)
 
     @property
     def cells(self) -> Iterator[Cell]:
@@ -168,7 +171,7 @@ class Player(Board):
         this has to stay the same for compatibility with BRUTE
         """
 
-        nodes = self.valid_moves
+        self.hive = set(self.nonempty_cells)
 
         return []
 
