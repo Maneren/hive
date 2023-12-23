@@ -195,6 +195,7 @@ class Player(Board):
 
         raise NotImplementedError
 
+    @property
     def cells_around_hive(self) -> Iterator[Cell]:
         """
         Iterator over all cells around the hive
