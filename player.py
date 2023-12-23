@@ -57,26 +57,27 @@ def cells_are_neighbors(cell1: Cell, cell2: Cell) -> bool:
     return (p1 - p2, q1 - q2) in DIRECTIONS
 
 
+class State(IntEnum):
+    """
+    State of the game
+    """
+
+    RUNNING = 0
+    WIN = 1
+    LOSS = 2
+    DRAW = 3
+
+    def is_end(self) -> bool:
+        return self > 0
+
+
 class Node:
-    class State(IntEnum):
-        """
-        State of the game
-        """
-
-        RUNNING = 0
-        WIN = 1
-        LOSS = 2
-        DRAW = 3
-
-        def is_end(self) -> bool:
-            return self > 0
-
     move: Move
     player_is_upper: bool
     score: int
     children: list[Node]
     depth: int
-    state: Node.State
+    state: State
 
     def __init__(
         self,
@@ -90,6 +91,7 @@ class Node:
         self.children = []
         self.depth = 0
         self.state = Node.State.RUNNING
+        self.state = State.RUNNING
 
     def next_depth(self, player: Player) -> None:
         """
