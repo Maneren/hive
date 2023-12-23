@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from enum import IntEnum
+from dataclasses import dataclass
+from enum import IntEnum, StrEnum
 from typing import Iterator
 
 from base import Board
@@ -13,7 +14,7 @@ from base import Board
 
 BoardData = dict[int, dict[int, str]]
 Cell = tuple[int, int]
-Move = list[str, int, int, int, int] | list[str, None, None, int, int]
+MoveBrute = list[str, int, int, int, int] | list[str, None, None, int, int]
 
 DIRECTIONS = ((0, -1), (1, -1), (1, 0), (0, 1), (-1, 1), (-1, 0))
 
@@ -27,36 +28,6 @@ SQUEEZE_DIRECTION_LR_MAP = {
 }
 
 
-def play_move(board: BoardData, move: Move) -> None:
-    """
-    Play the given move
-    """
-    piece, from_p, from_q, to_p, to_q = move
-
-    # add the piece to its new position
-    board[to_p][to_q] = board[to_p][to_q] + piece
-
-    if from_p is not None:
-        # remove the piece from its old position
-        assert board[from_p][from_q][-1] == piece
-        board[from_p][from_q] = board[from_p][from_q][:-1]
-
-
-def reverse_move(board: BoardData, move: Move) -> None:
-    """
-    Reverse the given move
-    """
-    piece, from_p, from_q, to_p, to_q = move
-
-    if from_p is not None:
-        # add the piece back to its old position
-        board[from_p][from_q] = board[from_p][from_q] + board[to_p][to_q]
-
-    # remove the piece from its new position
-    assert board[to_p][to_q][-1] == piece
-    board[to_p][to_q] = board[to_p][to_q][:-1]
-
-
 def cells_are_neighbors(cell1: Cell, cell2: Cell) -> bool:
     """
     Check if two cells are neighbors
@@ -64,6 +35,36 @@ def cells_are_neighbors(cell1: Cell, cell2: Cell) -> bool:
     p1, q1 = cell1
     p2, q2 = cell2
     return (p1 - p2, q1 - q2) in DIRECTIONS
+
+
+class Piece(StrEnum):
+    """
+    Possible pieces
+    """
+
+    Queen = "Q"  # bee
+    Spider = "S"  # spider
+    Beetle = "B"  # beetle
+    Ant = "A"  # ant
+    Grasshopper = "G"  # grasshopper
+
+
+@dataclass
+class Move:
+    _piece: Piece
+    start: Cell | None
+    end: Cell
+
+    def to_brute(self, upper: bool) -> MoveBrute:
+        piece = self._piece.value if upper else self._piece.lower()
+
+        if self.start is None:
+            return [piece, None, None, *self.end]
+
+        return [piece, *self.start, *self.end]
+
+    def piece_str(self, upper: bool) -> str:
+        return self._piece.value if upper else self._piece.lower()
 
 
 class State(IntEnum):
@@ -114,23 +115,23 @@ class Node:
             self.initialize_children(player)
             return
 
-        play_move(player.board, self.move)
+        player.play_move(self.move)
 
         for child in self.children:
             child.next_depth(player)
 
-        reverse_move(player.board, self.move)
+        player.reverse_move(self.move)
 
     def initialize_children(self, player: Player) -> None:
         """
         Initialize the children of the current node
         """
-        play_move(player.board, self.move)
+        player.play_move(self.move)
 
         for move in player.valid_moves:
             self.children.append(Node(move, not self.player_is_upper))
 
-        reverse_move(player.board, self.move)
+        player.reverse_move(self.move)
 
 
 class Player(Board):
@@ -197,7 +198,7 @@ class Player(Board):
         for p, q in self.hive:
             yield from self.empty_neighboring_cells(p, q)
 
-    def move(self) -> Move | list[None]:
+    def move(self) -> MoveBrute:
         """
         Returns a best move for the current self.board.
 
@@ -302,6 +303,38 @@ class Player(Board):
             self.in_board(*cell) and self.is_empty(*cell) for cell in (left, right)
         )
 
+    def play_move(self, move: Move) -> None:
+        """
+        Play the given move
+        """
+        piece = move.piece_str(self.upper)
+        start = move.start
+        end = move.end
+
+        # add the piece to its new position
+        self[end] += piece
+
+        if start is not None:
+            # remove the piece from its old position
+            assert self[start][-1] == piece
+            self[start] = self[start][:-1]
+
+    def reverse_move(self, move: Move) -> None:
+        """
+        Reverse the given move
+        """
+        piece = move.piece_str(self.upper)
+        start = move.start
+        end = move.end
+
+        if start is not None:
+            # add the piece back to its old position
+            self[start] += self[end][-1]
+
+        # remove the piece from its new position
+        assert self[end][-1] == piece
+        self[end] = self[end][:-1]
+
     ## allows indexing the board directly using player[p,q]
     def __getitem__(self, cell: Cell) -> str:
         p, q = cell
@@ -312,7 +345,11 @@ class Player(Board):
         self.board[p][q] = value
 
 
-def update_players(move: Move, active_player: Player, passive_player: Player) -> None:
+def update_players(
+    move: MoveBrute,
+    active_player: Player,
+    passive_player: Player,
+) -> None:
     """write move made by activePlayer player
     this method assumes that all moves are correct, no checking is made
     """
