@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 from dataclasses import dataclass
 from enum import IntEnum, StrEnum
 from typing import Callable, Iterator, TypeVar
@@ -296,6 +297,21 @@ class Player(Board):
         self.reverse_move(move)
 
         return ok
+
+    def queens_moves(self, queen: Cell) -> Iterator[Move]:
+        """
+        Iterator over all valid moves for the queen in the current board
+        """
+
+        assert self[queen].upper() == Piece.Queen
+
+        move = functools.partial(Move, Piece.Queen, queen)
+
+        return (
+            move(target)
+            for target in self.empty_neighboring_cells(*queen)
+            if self.hive_stays_contiguous(move(target))
+        )
 
     def neighboring_cells(self, p: int, q: int) -> Iterator[Cell]:
         """
