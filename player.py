@@ -451,11 +451,15 @@ class Player(Board):
 
         # add the piece to its new position
         self[end] += piece
+        self.hive.add(end)
 
         if start is not None:
             # remove the piece from its old position
             assert self[start][-1] == piece
             self[start] = self[start][:-1]
+
+            if self[start] == "":
+                self.hive.remove(start)
 
     def reverse_move(self, move: Move) -> None:
         """
@@ -468,10 +472,12 @@ class Player(Board):
         if start is not None:
             # add the piece back to its old position
             self[start] += self[end][-1]
+            self.hive.add(start)
 
         # remove the piece from its new position
         assert self[end][-1] == piece
         self[end] = self[end][:-1]
+        self.hive.remove(end)
 
     ## allows indexing the board directly using player[cell] or player[p, q]
     def __getitem__(self, cell: Cell) -> str:
