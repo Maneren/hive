@@ -401,7 +401,7 @@ class Player(Board):
         return ((base_p - nq, nq) for nq in range(self.size) if self.in_board(nq, q))
 
     def is_my_cell(self, p: int, q: int) -> bool:
-        cell = self[p, q]
+        cell = self[p, q][-1]
         is_upper = self.myColorIsUpper
 
         return cell.isupper() == is_upper or cell.islower() != is_upper
