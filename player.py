@@ -300,7 +300,9 @@ class Player(Board):
 
     def queens_moves(self, queen: Cell) -> Iterator[Move]:
         """
-        Iterator over all valid moves for the queen in the current board
+        Iterator over all valid moves for the queen in the current board.
+
+        Queen can move one step in any direction.
         """
 
         assert self[queen].upper() == Piece.Queen
@@ -315,7 +317,10 @@ class Player(Board):
 
     def ants_moves(self, ant: Cell) -> Iterator[Move]:
         """
-        Iterator over all valid moves for the ant in the current board
+        Iterator over all valid moves for the ant in the current board.
+
+        Ant can move any number of steps, bu always has to stey right next
+        to the hive.
         """
 
         assert self[ant].upper() == Piece.Ant
@@ -339,7 +344,10 @@ class Player(Board):
 
     def beetles_moves(self, beetle: Cell) -> Iterator[Move]:
         """
-        Iterator over all valid moves for the beetle in the current board
+        Iterator over all valid moves for the beetle in the current board.
+
+        Beetle can make one step in any direction, while also being able to climb
+        on top of other pieces.
         """
 
         assert self[beetle].upper() == Piece.Beetle
