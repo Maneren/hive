@@ -362,7 +362,7 @@ class Player(Board):
         assert self[end][-1] == piece
         self[end] = self[end][:-1]
 
-    ## allows indexing the board directly using player[p,q]
+    ## allows indexing the board directly using player[cell] or player[p, q]
     def __getitem__(self, cell: Cell) -> str:
         p, q = cell
         return self.board[p][q]
