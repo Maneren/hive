@@ -313,6 +313,30 @@ class Player(Board):
             if self.hive_stays_contiguous(move(target))
         )
 
+    def ants_moves(self, ant: Cell) -> Iterator[Move]:
+        """
+        Iterator over all valid moves for the ant in the current board
+        """
+
+        assert self[ant].upper() == Piece.Ant
+
+        def next_cells(p: int, q: int) -> Iterator[Cell]:
+            return (
+                neighbor
+                for neighbor in self.empty_neighboring_cells(p, q)
+                if neighbor in around_hive
+                and neighbor not in visited
+                and self.can_squeeze_through(p, q, *neighbor)
+                and self.hive_stays_contiguous(move(neighbor))
+            )
+
+        move = functools.partial(Move, Piece.Ant, ant)
+        around_hive = set(self.cells_around_hive)
+        visited = {ant}
+        stack = [ant]
+
+        yield from floodfill_except_first(visited, stack, next_cells, move)
+
     def neighboring_cells(self, p: int, q: int) -> Iterator[Cell]:
         """
         Iterator over all cells neighboring the cells (p,q)
