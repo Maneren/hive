@@ -337,6 +337,21 @@ class Player(Board):
 
         yield from floodfill_except_first(visited, stack, next_cells, move)
 
+    def beetles_moves(self, beetle: Cell) -> Iterator[Move]:
+        """
+        Iterator over all valid moves for the beetle in the current board
+        """
+
+        assert self[beetle].upper() == Piece.Beetle
+
+        move = functools.partial(Move, Piece.Beetle, beetle)
+
+        return (
+            move(target)
+            for target in self.neighboring_cells(*beetle)
+            if self.hive_stays_contiguous(move(target))
+        )
+
     def neighboring_cells(self, p: int, q: int) -> Iterator[Cell]:
         """
         Iterator over all cells neighboring the cells (p,q)
