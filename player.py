@@ -28,6 +28,25 @@ SQUEEZE_DIRECTION_LR_MAP = {
 }
 
 
+def parse_board(string: str) -> BoardData:
+    """
+    Parse board from string
+    """
+    board: BoardData = {}
+    lines = string.splitlines()
+    for q, line in enumerate(lines):
+        p = -(q // 2)
+
+        for char in line.split():
+            if p not in board:
+                board[p] = {}
+
+            board[p][q] = char if char != "." else ""
+            p += 1
+
+    return board
+
+
 def cells_are_neighbors(cell1: Cell, cell2: Cell) -> bool:
     """
     Check if two cells are neighbors
@@ -280,7 +299,7 @@ class Player(Board):
         """
         Check if (p,q) is a valid coordinate within the board
         """
-        return 0 <= q < self.size and -q // 2 <= p < self.size - q // 2
+        return 0 <= q < self.size and -(q // 2) <= p < self.size - q // 2
 
     def is_valid_move(self, piece: str, x: int, y: int) -> bool:
         return self.board[x][y][-1] == piece
