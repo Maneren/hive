@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import IntEnum, StrEnum
-from typing import Iterator
+from typing import Callable, Iterator, TypeVar
 
 from base import Board
 
@@ -26,6 +26,39 @@ SQUEEZE_DIRECTION_LR_MAP = {
     (1, -1): ((1, 0), (0, -1)),
     (-1, 1): ((0, 1), (-1, 0)),
 }
+
+
+T = TypeVar("T")
+
+
+def consume(iterator: Iterator[T]) -> None:
+    import collections
+
+    collections.deque(iterator, maxlen=0)
+
+
+def floodfill(
+    visited: set[Cell],
+    stack: list[Cell],
+    next_fn: Callable[[int, int], Iterator[Cell]],
+    map_fn: Callable[[Cell], T],
+) -> Iterator[T]:
+    while stack:
+        current = stack.pop()
+        visited.add(current)
+        yield map_fn(current)
+        stack.extend(next_fn(*current))
+
+
+def floodfill_except_first(
+    visited: set[Cell],
+    stack: list[Cell],
+    next_fn: Callable[[int, int], Iterator[Cell]],
+    map_fn: Callable[[Cell], T],
+) -> Iterator[T]:
+    iterator = floodfill(visited, stack, next_fn, map_fn)
+    next(iterator)  # skip first element
+    return iterator
 
 
 def parse_board(string: str) -> BoardData:
@@ -240,6 +273,29 @@ class Player(Board):
         self.hive = set(self.nonempty_cells)
 
         return []
+
+    def hive_stays_contiguous(self, move: Move) -> bool:
+        """
+        Check if the hive is contiguous
+        """
+
+        self.play_move(move)
+
+        def next_fn(p: int, q: int) -> Iterator[Cell]:
+            return (
+                neighbor for neighbor in self.neighbors(p, q) if neighbor not in visited
+            )
+
+        stack = [move.end]
+        visited = {move.end}
+
+        consume(floodfill(visited, stack, next_fn, lambda _: None))
+
+        ok = len(visited) == len(self.hive)
+
+        self.reverse_move(move)
+
+        return ok
 
     def neighboring_cells(self, p: int, q: int) -> Iterator[Cell]:
         """
