@@ -319,7 +319,7 @@ class Player(Board):
         """
         Iterator over all valid moves for the ant in the current board.
 
-        Ant can move any number of steps, bu always has to stey right next
+        Ant can move any number of steps, but always has to stay right next
         to the hive.
         """
 
@@ -372,10 +372,12 @@ class Player(Board):
 
         move = functools.partial(Move, Piece.Grasshopper, grasshopper)
 
+        # for each direction
         for dp, dq in DIRECTIONS:
             p, q = grasshopper
             skipped = False
 
+            # move in that direction until edge of board
             while True:
                 p += dp
                 q += dq
@@ -383,10 +385,12 @@ class Player(Board):
                 if not self.in_board(p, q):
                     break
 
+                # if tile is not empty, skip the piece
                 if not self.is_empty(p, q):
                     skipped = True
                     continue
 
+                # if tile is empty and at least one piece was skipped, yield move
                 if skipped:
                     move_ = move((p, q))
                     if self.hive_stays_contiguous(move_):
@@ -394,8 +398,7 @@ class Player(Board):
 
     def neighboring_cells(self, p: int, q: int) -> Iterator[Cell]:
         """
-        Iterator over all cells neighboring the cells (p,q)
-        in the hexagonal board
+        Iterator over all cells neighboring (p,q)
         """
         return (
             (p + dp, q + dq) for dp, dq in DIRECTIONS if self.in_board(p + dp, q + dq)
@@ -441,12 +444,18 @@ class Player(Board):
         return ((base_p - nq, nq) for nq in range(self.size) if self.in_board(nq, q))
 
     def is_my_cell(self, p: int, q: int) -> bool:
+        """
+        Checks if (p,q) is a cell owned by the player
+        """
         cell = self[p, q][-1]
         is_upper = self.myColorIsUpper
 
         return cell.isupper() == is_upper or cell.islower() != is_upper
 
     def is_empty(self, p: int, q: int) -> bool:
+        """
+        Checks if (p,q) is an empty cell
+        """
         return self.board[p][q] == ""
 
     def in_board(self, p: int, q: int) -> bool:
