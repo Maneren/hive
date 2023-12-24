@@ -360,6 +360,38 @@ class Player(Board):
             if self.hive_stays_contiguous(move(target))
         )
 
+    def grasshoppers_moves(self, grasshopper: Cell) -> Iterator[Move]:
+        """
+        Iterator over all valid moves for the grasshopper in the current board.
+
+        Grasshopper can jump in any direction in straght line, but always has to
+        jump over at least one other piece.
+        """
+
+        assert self[grasshopper].upper() == Piece.Grasshopper
+
+        move = functools.partial(Move, Piece.Grasshopper, grasshopper)
+
+        for dp, dq in DIRECTIONS:
+            p, q = grasshopper
+            skipped = False
+
+            while True:
+                p += dp
+                q += dq
+
+                if not self.in_board(p, q):
+                    break
+
+                if not self.is_empty(p, q):
+                    skipped = True
+                    continue
+
+                if skipped:
+                    move_ = move((p, q))
+                    if self.hive_stays_contiguous(move_):
+                        yield move_
+
     def neighboring_cells(self, p: int, q: int) -> Iterator[Cell]:
         """
         Iterator over all cells neighboring the cells (p,q)
