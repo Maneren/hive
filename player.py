@@ -85,6 +85,9 @@ class Move:
     def piece_str(self, upper: bool) -> str:
         return self._piece.value if upper else self._piece.lower()
 
+    def __str__(self) -> str:
+        return f"{self.piece_str(True)}: {self.start} -> {self.end}"
+
 
 class State(IntEnum):
     """
