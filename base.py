@@ -64,7 +64,7 @@ class Board:
         # create empty board as a dictionary
         self.board = {
             p: {q: "" for q in range(-size, size) if self.inBoard(p, q)}
-            for p in range(-size, size)
+            for p in range(-(size // 2), size)
         }
 
         # this is for visualization and to synchronize colors between png/js
@@ -85,7 +85,7 @@ class Board:
 
     def inBoard(self, p: int, q: int) -> bool:
         """return True if (p,q) is valid coordinate"""
-        return 0 <= q < self.size and -q // 2 <= p < self.size - q // 2
+        return 0 <= q < self.size and -(q // 2) <= p < self.size - q // 2
 
     def rotateRight(self, p: int, q: int) -> Tile:
         pp = -q
