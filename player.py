@@ -464,9 +464,6 @@ class Player(Board):
         """
         return 0 <= q < self.size and -(q // 2) <= p < self.size - q // 2
 
-    def is_valid_move(self, piece: str, x: int, y: int) -> bool:
-        return self.board[x][y][-1] == piece
-
     def is_valid_placement(self, p: int, q: int) -> bool:
         """
         Check if (p,q) is a valid placement for a new piece. Assumes
