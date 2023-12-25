@@ -19,16 +19,6 @@ MoveBrute = list[str, int, int, int, int] | list[str, None, None, int, int]
 
 DIRECTIONS = ((0, -1), (1, -1), (1, 0), (0, 1), (-1, 1), (-1, 0))
 
-SQUEEZE_DIRECTION_LR_MAP = {
-    (0, -1): ((-1, 0), (1, -1)),
-    (0, 1): ((1, 0), (-1, 1)),
-    (1, 0): ((1, -1), (0, 1)),
-    (-1, 0): ((-1, 1), (0, -1)),
-    (1, -1): ((1, 0), (0, -1)),
-    (-1, 1): ((0, 1), (-1, 0)),
-}
-
-
 T = TypeVar("T")
 
 
@@ -464,6 +454,16 @@ class Player(Board):
         """
         return 0 <= q < self.size and -(q // 2) <= p < self.size - q // 2
 
+    def rotate_left(self, p: int, q: int) -> Cell:
+        np = p + q
+        nq = -p
+        return np, nq
+
+    def rotate_right(self, p: int, q: int) -> Cell:
+        np = -q
+        nq = p + q
+        return np, nq
+
     def is_valid_placement(self, p: int, q: int) -> bool:
         """
         Check if (p,q) is a valid placement for a new piece. Assumes
@@ -476,9 +476,10 @@ class Player(Board):
         Check if a piece can move from (p,q) to (np,nq), ie. there are no other pieces
         on the sides blocking it.
         """
-        direction = (np - p, nq - q)
+        dp, dq = (np - p, nq - q)
 
-        (lp, lq), (rp, rq) = SQUEEZE_DIRECTION_LR_MAP[direction]
+        lp, lq = self.rotate_left(dp, dq)
+        rp, rq = self.rotate_right(dp, dq)
 
         left = (p + lp, q + lq)
         right = (p + rp, q + rq)
