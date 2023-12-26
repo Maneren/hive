@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+from collections import deque
 from dataclasses import dataclass
 from enum import IntEnum, StrEnum
 from typing import Callable, Iterator, TypeVar
@@ -23,33 +24,27 @@ T = TypeVar("T")
 
 
 def consume(iterator: Iterator[T]) -> None:
-    import collections
+    """
+    Consume the whole iterator
+    """
 
-    collections.deque(iterator, maxlen=0)
+    # use deque because it uses fast C loops under the hood
+    deque(iterator, maxlen=0)
 
 
 def floodfill(
     visited: set[Cell],
-    stack: list[Cell],
+    queue: deque[Cell],
     next_fn: Callable[[int, int], Iterator[Cell]],
     map_fn: Callable[[Cell], T],
 ) -> Iterator[T]:
-    while stack:
-        current = stack.pop()
+    while queue:
+        current = queue.popleft()
+        if current in visited:
+            continue
         visited.add(current)
         yield map_fn(current)
-        stack.extend(next_fn(*current))
-
-
-def floodfill_except_first(
-    visited: set[Cell],
-    stack: list[Cell],
-    next_fn: Callable[[int, int], Iterator[Cell]],
-    map_fn: Callable[[Cell], T],
-) -> Iterator[T]:
-    iterator = floodfill(visited, stack, next_fn, map_fn)
-    next(iterator)  # skip first element
-    return iterator
+        queue.extend(next_fn(*current))
 
 
 def parse_board(string: str) -> BoardData:
@@ -265,26 +260,22 @@ class Player(Board):
 
         return []
 
-    def hive_stays_contiguous(self, move: Move) -> bool:
+    def moving_doesnt_break_hive(self, piece: Cell) -> bool:
         """
-        Check if the hive is contiguous
+        Check if moving the given piece doesn't break the hive into part
         """
 
-        self.play_move(move)
+        piece_type = self[piece][-1]
+        self[piece] = self[piece][:-1]
 
-        def next_fn(p: int, q: int) -> Iterator[Cell]:
-            return (
-                neighbor for neighbor in self.neighbors(p, q) if neighbor not in visited
-            )
+        queue = deque([piece])
+        visited: set[Cell] = set()
 
-        stack = [move.end]
-        visited = {move.end}
-
-        consume(floodfill(visited, stack, next_fn, lambda _: None))
+        consume(floodfill(visited, queue, self.neighbors, lambda _: None))
 
         ok = len(visited) == len(self.hive)
 
-        self.reverse_move(move)
+        self[piece] += piece_type
 
         return ok
 
@@ -299,11 +290,7 @@ class Player(Board):
 
         move = functools.partial(Move, Piece.Queen, queen)
 
-        return (
-            move(target)
-            for target in self.empty_neighboring_cells(*queen)
-            if self.hive_stays_contiguous(move(target))
-        )
+        return (move(target) for target in self.valid_steps(*queen))
 
     def ants_moves(self, ant: Cell) -> Iterator[Move]:
         """
@@ -315,22 +302,13 @@ class Player(Board):
 
         assert self[ant].upper() == Piece.Ant
 
-        def next_cells(p: int, q: int) -> Iterator[Cell]:
-            return (
-                neighbor
-                for neighbor in self.empty_neighboring_cells(p, q)
-                if neighbor in around_hive
-                and neighbor not in visited
-                and self.can_squeeze_through(p, q, *neighbor)
-                and self.hive_stays_contiguous(move(neighbor))
-            )
-
         move = functools.partial(Move, Piece.Ant, ant)
-        around_hive = set(self.cells_around_hive)
-        visited = {ant}
-        stack = [ant]
+        visited: set[Cell] = set()
+        queue = deque([ant])
 
-        yield from floodfill_except_first(visited, stack, next_cells, move)
+        iterator = floodfill(visited, queue, self.valid_steps, move)
+        next(iterator)  # skip first element - ant's position
+        return iterator
 
     def beetles_moves(self, beetle: Cell) -> Iterator[Move]:
         """
@@ -345,9 +323,7 @@ class Player(Board):
         move = functools.partial(Move, Piece.Beetle, beetle)
 
         return (
-            move(target)
-            for target in self.neighboring_cells(*beetle)
-            if self.hive_stays_contiguous(move(target))
+            move(target) for target in self.valid_steps(*beetle, include_nonempty=True)
         )
 
     def grasshoppers_moves(self, grasshopper: Cell) -> Iterator[Move]:
@@ -382,9 +358,7 @@ class Player(Board):
 
                 # if tile is empty and at least one piece was skipped, yield move
                 if skipped:
-                    move_ = move((p, q))
-                    if self.hive_stays_contiguous(move_):
-                        yield move_
+                    yield move((p, q))
 
     def neighboring_cells(self, p: int, q: int) -> Iterator[Cell]:
         """
@@ -413,6 +387,32 @@ class Player(Board):
         Check if the given cell has at least one neighbor
         """
         return any(self.neighbors(p, q))
+
+    def valid_steps(
+        self,
+        p: int,
+        q: int,
+        include_nonempty: bool = False,
+    ) -> Iterator[Cell]:
+        """
+        Iterator over all cells neighboring (p,q), that can be accessed from (p,q) and
+        moving to which won't leave the hive (that means they have at least
+        one neighbor). By deafault, only empty cells are returned, but optionally
+        non-empty cells can be included as well.
+        """
+
+        base_iter = (
+            self.neighboring_cells(p, q)
+            if include_nonempty
+            else self.empty_neighboring_cells(p, q)
+        )
+
+        return (
+            neighbor
+            for neighbor in base_iter
+            if self.has_neighbor(*neighbor)
+            and self.can_squeeze_through(p, q, *neighbor)
+        )
 
     def horizontal(self, p: int, q: int) -> Iterator[Cell]:
         """
