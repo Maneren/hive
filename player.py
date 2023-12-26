@@ -360,6 +360,37 @@ class Player(Board):
                 if skipped:
                     yield move((p, q))
 
+    def spiders_moves(self, spider: Cell) -> Iterator[Move]:
+        """
+        Iterator over all valid moves for the spider in the current board.
+
+        Spider can move only exactly three steps, while staying right next
+        to the hive.
+        """
+
+        assert self[spider].upper() == Piece.Spider
+
+        move = functools.partial(Move, Piece.Spider, spider)
+        visited: set[Cell] = set()
+        stack = [spider]
+
+        for _ in range(3):
+            next_stack: list[Cell] = []
+
+            for item in stack:
+                visited.add(item)
+                next_stack.extend(
+                    neighbor
+                    for neighbor in self.valid_steps(*item)
+                    if neighbor not in visited
+                )
+
+            stack = next_stack
+            if not stack:
+                break
+
+        return map(move, stack)
+
     def neighboring_cells(self, p: int, q: int) -> Iterator[Cell]:
         """
         Iterator over all cells neighboring (p,q)
