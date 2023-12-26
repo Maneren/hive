@@ -241,8 +241,7 @@ class Player(Board):
         """
         Iterator over all cells around the hive
         """
-        for p, q in self.hive:
-            yield from self.empty_neighboring_cells(p, q)
+        return (neighbor for p, q in self.hive for neighbor in self.neighbors(p, q))
 
     def move(self) -> MoveBrute:
         """
