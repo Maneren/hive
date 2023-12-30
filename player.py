@@ -29,8 +29,7 @@ def consume(iterator: Iterator[T]) -> None:
     Consume the whole iterator
     """
 
-    # use deque because it uses fast C loops under the hood
-    deque(iterator, maxlen=0)
+    list(iterator)
 
 
 def floodfill(
