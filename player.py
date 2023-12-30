@@ -182,6 +182,24 @@ class Node:
         player.reverse_move(self.move)
 
 
+class LiftPiece:
+    player: Player
+    cell: Cell
+
+    piece: str
+
+    def __init__(self, player: Player, cell: Cell) -> None:
+        self.player = player
+        self.cell = cell
+
+    def __enter__(self) -> str:
+        self.piece = self.player.remove_piece(self.cell)
+        return self.piece
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # noqa: ANN001
+        self.player.add_piece(self.cell, self.piece)
+
+
 class Player(Board):
     hive: set[Cell]
 
@@ -285,18 +303,13 @@ class Player(Board):
         Check if moving the given piece doesn't break the hive into parts
         """
 
-        piece = self.remove_piece(cell)
+        with LiftPiece(self, cell):
+            queue = deque(self.neighbors(cell))
+            visited: set[Cell] = set()
 
-        queue = deque(self.neighbors(cell))
-        visited: set[Cell] = set()
+            consume(floodfill(visited, queue, self.neighbors, lambda _: None))
 
-        consume(floodfill(visited, queue, self.neighbors, lambda _: None))
-
-        ok = len(visited) == len(self.hive)
-
-        self.add_piece(cell, piece)
-
-        return ok
+            return len(visited) == len(self.hive)
 
     def queens_moves(self, queen: Cell) -> Iterator[Move]:
         """
@@ -319,16 +332,14 @@ class Player(Board):
         to the hive.
         """
 
-        piece = self.remove_piece(ant)
-        assert piece.upper() == Piece.Ant
+        with LiftPiece(self, ant) as piece:
+            assert piece.upper() == Piece.Ant
 
-        move = functools.partial(Move, Piece.Ant, ant)
-        visited: set[Cell] = {ant}
-        queue = deque(self.valid_steps(ant))
+            move = functools.partial(Move, Piece.Ant, ant)
+            visited: set[Cell] = {ant}
+            queue = deque(self.valid_steps(ant))
 
-        yield from floodfill(visited, queue, self.valid_steps, move)
-
-        self.add_piece(ant, piece)
+            yield from floodfill(visited, queue, self.valid_steps, move)
 
     def beetles_moves(self, beetle: Cell) -> Iterator[Move]:
         """
