@@ -36,7 +36,7 @@ def consume(iterator: Iterator[T]) -> None:
 def floodfill(
     visited: set[Cell],
     queue: deque[Cell],
-    next_fn: Callable[[int, int], Iterator[Cell]],
+    next_fn: Callable[[Cell], Iterator[Cell]],
     map_fn: Callable[[Cell], T],
 ) -> Iterator[T]:
     while queue:
@@ -45,7 +45,7 @@ def floodfill(
             continue
         visited.add(current)
         yield map_fn(current)
-        queue.extend(next_fn(*current))
+        queue.extend(next_fn(current))
 
 
 def parse_board(string: str) -> BoardData:
@@ -220,14 +220,14 @@ class Player(Board):
         """
         Iterator over all empty cells
         """
-        return (cell for cell in self.cells if self.is_empty(*cell))
+        return (cell for cell in self.cells if self.is_empty(cell))
 
     @property
     def nonempty_cells(self) -> Iterator[Cell]:
         """
         Iterator over all nonempty cells
         """
-        return (cell for cell in self.cells if not self.is_empty(*cell))
+        return (cell for cell in self.cells if not self.is_empty(cell))
 
     @property
     def my_pieces(self) -> Iterator[tuple[Piece, Cell]]:
@@ -235,9 +235,9 @@ class Player(Board):
         Iterator over all my pieces on the board. Uses self.hive
         """
         return (
-            (Piece.from_str(self[p, q][-1]), (p, q))
-            for p, q in self.hive
-            if self.is_my_cell(p, q)
+            (Piece.from_str(self[cell][-1]), cell)
+            for cell in self.hive
+            if self.is_my_cell(cell)
         )
 
     @property
@@ -265,7 +265,7 @@ class Player(Board):
         """
         Iterator over all cells around the hive
         """
-        return (neighbor for p, q in self.hive for neighbor in self.neighbors(p, q))
+        return (neighbor for cell in self.hive for neighbor in self.neighbors(cell))
 
     def move(self) -> MoveBrute:
         """
@@ -290,7 +290,7 @@ class Player(Board):
 
         piece = self.remove_piece(cell)
 
-        queue = deque(self.neighbors(*cell))
+        queue = deque(self.neighbors(cell))
         visited: set[Cell] = set()
 
         consume(floodfill(visited, queue, self.neighbors, lambda _: None))
@@ -312,7 +312,7 @@ class Player(Board):
 
         move = functools.partial(Move, Piece.Queen, queen)
 
-        return (move(target) for target in self.valid_steps(*queen))
+        return (move(target) for target in self.valid_steps(queen))
 
     def ants_moves(self, ant: Cell) -> Iterator[Move]:
         """
@@ -326,7 +326,7 @@ class Player(Board):
 
         move = functools.partial(Move, Piece.Ant, ant)
         visited: set[Cell] = {ant}
-        queue = deque(self.valid_steps(*ant))
+        queue = deque(self.valid_steps(ant))
 
         return floodfill(visited, queue, self.valid_steps, move)
 
@@ -343,7 +343,7 @@ class Player(Board):
         move = functools.partial(Move, Piece.Beetle, beetle)
 
         return (
-            move(target) for target in self.valid_steps(*beetle, include_nonempty=True)
+            move(target) for target in self.valid_steps(beetle, include_nonempty=True)
         )
 
     def grasshoppers_moves(self, grasshopper: Cell) -> Iterator[Move]:
@@ -360,25 +360,25 @@ class Player(Board):
 
         # for each direction
         for dp, dq in DIRECTIONS:
-            p, q = grasshopper
+            gs = grasshopper  # copy the position
             skipped = False
 
             # move in that direction until edge of board
             while True:
-                p += dp
-                q += dq
+                p, q = gs
+                gs = (p + dp, q + dq)
 
-                if not self.in_board(p, q):
+                if not self.in_board(grasshopper):
                     break
 
                 # if tile is not empty, skip the piece
-                if not self.is_empty(p, q):
+                if not self.is_empty(grasshopper):
                     skipped = True
                     continue
 
                 # if tile is empty and at least one piece was skipped, yield move
                 if skipped:
-                    yield move((p, q))
+                    yield move(grasshopper)
 
     def spiders_moves(self, spider: Cell) -> Iterator[Move]:
         """
@@ -401,7 +401,7 @@ class Player(Board):
                 visited.add(item)
                 next_stack.extend(
                     neighbor
-                    for neighbor in self.valid_steps(*item)
+                    for neighbor in self.valid_steps(item)
                     if neighbor not in visited
                 )
 
@@ -411,38 +411,44 @@ class Player(Board):
 
         return map(move, stack)
 
-    def neighboring_cells(self, p: int, q: int) -> Iterator[Cell]:
+    def neighboring_cells(self, cell: Cell) -> Iterator[Cell]:
         """
         Iterator over all cells neighboring (p,q)
         """
+        p, q = cell
         return (
-            (p + dp, q + dq) for dp, dq in DIRECTIONS if self.in_board(p + dp, q + dq)
+            (p + dp, q + dq) for dp, dq in DIRECTIONS if self.in_board((p + dp, q + dq))
         )
 
-    def empty_neighboring_cells(self, p: int, q: int) -> Iterator[Cell]:
+    def empty_neighboring_cells(self, cell: Cell) -> Iterator[Cell]:
         """
         Iterator over all cells neighboring (p,q) that are empty
         """
-        return (cell for cell in self.neighboring_cells(p, q) if self.is_empty(*cell))
+        return (
+            neighbor
+            for neighbor in self.neighboring_cells(cell)
+            if self.is_empty(neighbor)
+        )
 
-    def neighbors(self, p: int, q: int) -> Iterator[Cell]:
+    def neighbors(self, cell: Cell) -> Iterator[Cell]:
         """
         Iterator over all cells neighboring (p,q) that aren't empty
         """
         return (
-            cell for cell in self.neighboring_cells(p, q) if not self.is_empty(*cell)
+            neighbor
+            for neighbor in self.neighboring_cells(cell)
+            if not self.is_empty(neighbor)
         )
 
-    def has_neighbor(self, p: int, q: int, exclude: Cell | None = None) -> bool:
+    def has_neighbor(self, cell: Cell, exclude: Cell | None = None) -> bool:
         """
         Check if the given cell has at least one neighbor
         """
-        return any(neighbor for neighbor in self.neighbors(p, q) if neighbor != exclude)
+        return any(neighbor for neighbor in self.neighbors(cell) if neighbor != exclude)
 
     def valid_steps(
         self,
-        p: int,
-        q: int,
+        cell: Cell,
         include_nonempty: bool = False,
     ) -> Iterator[Cell]:
         """
@@ -453,71 +459,73 @@ class Player(Board):
         """
 
         base_iter = (
-            self.neighboring_cells(p, q)
+            self.neighboring_cells(cell)
             if include_nonempty
-            else self.empty_neighboring_cells(p, q)
+            else self.empty_neighboring_cells(cell)
         )
 
         return (
             neighbor
             for neighbor in base_iter
-            if self.has_neighbor(*neighbor, exclude=(p, q))
-            and self.can_squeeze_through(p, q, *neighbor)
+            if self.has_neighbor(neighbor, exclude=cell)
+            and self.can_squeeze_through(cell, neighbor)
         )
 
-    def is_my_cell(self, p: int, q: int) -> bool:
+    def is_my_cell(self, cell: Cell) -> bool:
         """
         Checks if (p,q) is a cell owned by the player
         """
-        cell = self[p, q][-1]
+        piece = self[cell][-1]
         is_upper = self.myColorIsUpper
 
-        return cell.isupper() == is_upper or cell.islower() != is_upper
+        return piece.isupper() == is_upper or piece.islower() != is_upper
 
-    def is_empty(self, p: int, q: int) -> bool:
+    def is_empty(self, cell: Cell) -> bool:
         """
         Checks if (p,q) is an empty cell
         """
-        return self.board[p][q] == ""
+        return self[cell] == ""
 
-    def in_board(self, p: int, q: int) -> bool:
+    def in_board(self, cell: Cell) -> bool:
         """
         Check if (p,q) is a valid coordinate within the board
         """
+        p, q = cell
         return 0 <= q < self.size and -(q // 2) <= p < self.size - q // 2
 
-    def rotate_left(self, p: int, q: int) -> Cell:
-        np = p + q
-        nq = -p
-        return np, nq
+    def rotate_left(self, direction: Direction) -> Direction:
+        p, q = direction
+        return p + q, -p
 
-    def rotate_right(self, p: int, q: int) -> Cell:
-        np = -q
-        nq = p + q
-        return np, nq
+    def rotate_right(self, direction: Direction) -> Direction:
+        p, q = direction
+        return -q, p + q
 
-    def is_valid_placement(self, p: int, q: int) -> bool:
+    def is_valid_placement(self, cell: Cell) -> bool:
         """
         Check if (p,q) is a valid placement for a new piece. Assumes
         there are already other pieces on the board
         """
-        return all(self.is_my_cell(*cell) for cell in self.neighbors(p, q))
+        return all(self.is_my_cell(neighbor) for neighbor in self.neighbors(cell))
 
-    def can_squeeze_through(self, p: int, q: int, np: int, nq: int) -> bool:
+    def can_squeeze_through(self, origin: Cell, target: Cell) -> bool:
         """
         Check if a piece can move from (p,q) to (np,nq), ie. there are no other pieces
         on the sides blocking it.
         """
-        dp, dq = (np - p, nq - q)
+        p, q = origin
+        np, nq = target
 
-        lp, lq = self.rotate_left(dp, dq)
-        rp, rq = self.rotate_right(dp, dq)
+        direction = (np - p, nq - q)
+
+        lp, lq = self.rotate_left(direction)
+        rp, rq = self.rotate_right(direction)
 
         left = (p + lp, q + lq)
         right = (p + rp, q + rq)
 
         return any(
-            self.in_board(*cell) and self.is_empty(*cell) for cell in (left, right)
+            self.in_board(cell) and self.is_empty(cell) for cell in (left, right)
         )
 
     def remove_piece(self, cell: Cell) -> str:
@@ -584,7 +592,7 @@ class Player(Board):
             row = [
                 self[p, q] or "."
                 for p in range(-self.size, self.size)
-                if self.in_board(p, q)
+                if self.in_board((p, q))
             ]
             offset = " " if q % 2 else ""
             lines.append(offset + " ".join(row))
