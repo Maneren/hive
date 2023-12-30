@@ -247,7 +247,7 @@ class Player(Board):
         return (cell for cell in self.cells if not self.is_empty(cell))
 
     @property
-    def my_pieces(self) -> Iterator[tuple[Piece, Cell]]:
+    def my_pieces_on_board(self) -> Iterator[tuple[Piece, Cell]]:
         """
         Iterator over all my pieces on the board. Uses self.hive
         """
@@ -255,6 +255,35 @@ class Player(Board):
             (Piece.from_str(self[cell][-1]), cell)
             for cell in self.hive
             if self.is_my_cell(cell)
+        )
+
+    @property
+    def my_placable_pieces(self) -> Iterator[Piece]:
+        """
+        Iterator over all my placable pieces
+        """
+        return (
+            Piece.from_str(piece) for piece, count in self.myPieces.items() if count > 0
+        )
+
+    @property
+    def my_movable_pieces(self) -> Iterator[tuple[Piece, Cell]]:
+        """
+        Iterator over all my movable pieces
+        """
+        return (
+            (piece, cell)
+            for piece, cell in self.my_pieces_on_board
+            if self.moving_doesnt_break_hive(cell)
+        )
+
+    @property
+    def valid_placements(self) -> Iterator[Cell]:
+        """
+        Iterator over all valid placements
+        """
+        return (
+            cell for cell in self.cells_around_hive if self.borders_only_my_pieces(cell)
         )
 
     @property
@@ -271,16 +300,29 @@ class Player(Board):
             Piece.Spider: self.spiders_moves,
         }
 
-        for piece, cell in self.my_pieces:
-            if self.moving_doesnt_break_hive(cell):
-                yield from mapping[piece](cell)
+        yield from (
+            Move(piece, None, cell)
+            for cell in self.valid_placements
+            for piece in self.my_placable_pieces
+        )
+
+        if self.myMove >= 3:
+            yield from (
+                move
+                for piece, cell in self.my_movable_pieces
+                for move in mapping[piece](cell)
+            )
 
     @property
-    def cells_around_hive(self) -> Iterator[Cell]:
+    def cells_around_hive(self) -> set[Cell]:
         """
-        Iterator over all cells around the hive
+        Set of all cells around the hive
         """
-        return (neighbor for cell in self.hive for neighbor in self.neighbors(cell))
+        return {
+            neighbor
+            for cell in self.hive
+            for neighbor in self.empty_neighboring_cells(cell)
+        }
 
     def move(self) -> MoveBrute:
         """
@@ -335,11 +377,21 @@ class Player(Board):
         with LiftPiece(self, ant) as piece:
             assert piece.upper() == Piece.Ant
 
+            around_hive = set(self.cells_around_hive)
+
+            def next_cells(cell: Cell) -> Iterator[Cell]:
+                return (
+                    neighbor
+                    for neighbor in self.empty_neighboring_cells(cell)
+                    if neighbor in around_hive
+                    and self.can_squeeze_through(cell, neighbor)
+                )
+
             move = functools.partial(Move, Piece.Ant, ant)
             visited: set[Cell] = {ant}
-            queue = deque(self.valid_steps(ant))
+            queue = deque(next_cells(ant))
 
-            yield from floodfill(visited, queue, self.valid_steps, move)
+            yield from floodfill(visited, queue, next_cells, move)
 
     def beetles_moves(self, beetle: Cell) -> Iterator[Move]:
         """
@@ -354,7 +406,7 @@ class Player(Board):
         move = functools.partial(Move, Piece.Beetle, beetle)
 
         return (
-            move(target) for target in self.valid_steps(beetle, include_nonempty=True)
+            move(target) for target in self.valid_steps(beetle, can_crawl_over=True)
         )
 
     def grasshoppers_moves(self, grasshopper: Cell) -> Iterator[Move]:
@@ -460,7 +512,7 @@ class Player(Board):
     def valid_steps(
         self,
         cell: Cell,
-        include_nonempty: bool = False,
+        can_crawl_over: bool = False,
     ) -> Iterator[Cell]:
         """
         Iterator over all cells neighboring (p,q), that can be accessed from (p,q) and
@@ -469,15 +521,16 @@ class Player(Board):
         non-empty cells can be included as well.
         """
 
-        base_iter = (
-            self.neighboring_cells(cell)
-            if include_nonempty
-            else self.empty_neighboring_cells(cell)
-        )
+        if can_crawl_over:
+            return (
+                neighbor
+                for neighbor in self.neighboring_cells(cell)
+                if self.has_neighbor(neighbor, exclude=cell)
+            )
 
         return (
             neighbor
-            for neighbor in base_iter
+            for neighbor in self.empty_neighboring_cells(cell)
             if self.has_neighbor(neighbor, exclude=cell)
             and self.can_squeeze_through(cell, neighbor)
         )
@@ -512,10 +565,9 @@ class Player(Board):
         p, q = direction
         return -q, p + q
 
-    def is_valid_placement(self, cell: Cell) -> bool:
+    def borders_only_my_pieces(self, cell: Cell) -> bool:
         """
-        Check if (p,q) is a valid placement for a new piece. Assumes
-        there are already other pieces on the board
+        Check if all neighbors of (p,q) are owned by the player
         """
         return all(self.is_my_cell(neighbor) for neighbor in self.neighbors(cell))
 
