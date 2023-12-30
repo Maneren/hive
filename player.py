@@ -254,10 +254,8 @@ class Player(Board):
         }
 
         for piece, cell in self.my_pieces:
-            if not self.moving_doesnt_break_hive(cell):
-                continue
-
-            yield from mapping[piece](cell)
+            if self.moving_doesnt_break_hive(cell):
+                yield from mapping[piece](cell)
 
     @property
     def cells_around_hive(self) -> Iterator[Cell]:
