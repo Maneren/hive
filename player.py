@@ -465,25 +465,6 @@ class Player(Board):
             and self.can_squeeze_through(p, q, *neighbor)
         )
 
-    def horizontal(self, p: int, q: int) -> Iterator[Cell]:
-        """
-        Iterator over all cells on the same horizontal line as (p,q)
-        """
-        return ((p + dp, q) for dp in range(-q // 2, self.size - q // 2))
-
-    def diagonal_l(self, p: int, _q: int) -> Iterator[Cell]:
-        """
-        Iterator over all cells on the same left diagoal line as (p,q)
-        """
-        return ((p, nq) for nq in range(self.size) if self.in_board(p, nq))
-
-    def diagonal_r(self, p: int, q: int) -> Iterator[Cell]:
-        """
-        Iterator over all cells on the same right diagonal line as (p,q)
-        """
-        base_p = p + q
-        return ((base_p - nq, nq) for nq in range(self.size) if self.in_board(nq, q))
-
     def is_my_cell(self, p: int, q: int) -> bool:
         """
         Checks if (p,q) is a cell owned by the player
