@@ -27,5 +27,5 @@ select = [
   "UP",
   "W",
 ]
-ignore = ["ANN101", "ANN102", "ANN401", "S101", "PLR0913", "PLR2004"]
+ignore = ["ANN101", "ANN102", "ANN401", "S101", "S311", "PLR0913", "PLR2004"]
 exclude = ["base.py"]
