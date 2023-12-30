@@ -246,7 +246,19 @@ class Player(Board):
         Iterator over all valid moves
         """
 
-        raise NotImplementedError
+        mapping = {
+            Piece.Ant: self.ants_moves,
+            Piece.Queen: self.queens_moves,
+            Piece.Beetle: self.beetles_moves,
+            Piece.Grasshopper: self.grasshoppers_moves,
+            Piece.Spider: self.spiders_moves,
+        }
+
+        for piece, cell in self.my_pieces:
+            if not self.moving_doesnt_break_hive(cell):
+                continue
+
+            yield from mapping[piece](cell)
 
     @property
     def cells_around_hive(self) -> Iterator[Cell]:
