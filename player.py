@@ -322,13 +322,16 @@ class Player(Board):
         to the hive.
         """
 
-        assert self[ant].upper() == Piece.Ant
+        piece = self.remove_piece(ant)
+        assert piece.upper() == Piece.Ant
 
         move = functools.partial(Move, Piece.Ant, ant)
         visited: set[Cell] = {ant}
         queue = deque(self.valid_steps(ant))
 
-        return floodfill(visited, queue, self.valid_steps, move)
+        yield from floodfill(visited, queue, self.valid_steps, move)
+
+        self.add_piece(ant, piece)
 
     def beetles_moves(self, beetle: Cell) -> Iterator[Move]:
         """
