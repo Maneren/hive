@@ -16,6 +16,7 @@ from base import Board
 
 BoardData = dict[int, dict[int, str]]
 Cell = tuple[int, int]
+Direction = tuple[int, int]
 MoveBrute = list[str, int, int, int, int] | list[str, None, None, int, int]
 
 DIRECTIONS = ((0, -1), (1, -1), (1, 0), (0, 1), (-1, 1), (-1, 0))
@@ -86,6 +87,13 @@ class Piece(StrEnum):
     Ant = "A"  # ant
     Grasshopper = "G"  # grasshopper
 
+    @staticmethod
+    def from_str(string: str) -> Piece:
+        return Piece(string.upper())
+
+    def upper(self) -> str:
+        return self.value
+
 
 @dataclass
 class Move:
@@ -102,7 +110,7 @@ class Move:
         return [piece, *self.start, *self.end]
 
     def piece_str(self, upper: bool) -> str:
-        return self._piece.value if upper else self._piece.lower()
+        return self._piece.upper() if upper else self._piece.lower()
 
     def __str__(self) -> str:
         return f"{self.piece_str(True)}: {self.start} -> {self.end}"
@@ -222,11 +230,15 @@ class Player(Board):
         return (cell for cell in self.cells if not self.is_empty(*cell))
 
     @property
-    def my_pieces(self) -> Iterator[tuple[str, Cell]]:
+    def my_pieces(self) -> Iterator[tuple[Piece, Cell]]:
         """
         Iterator over all my pieces on the board. Uses self.hive
         """
-        return ((self[p, q], (p, q)) for p, q in self.hive if self.is_my_cell(p, q))
+        return (
+            (Piece.from_str(self[p, q][-1]), (p, q))
+            for p, q in self.hive
+            if self.is_my_cell(p, q)
+        )
 
     @property
     def valid_moves(self) -> Iterator[Move]:
@@ -259,22 +271,21 @@ class Player(Board):
 
         return []
 
-    def moving_doesnt_break_hive(self, piece: Cell) -> bool:
+    def moving_doesnt_break_hive(self, cell: Cell) -> bool:
         """
-        Check if moving the given piece doesn't break the hive into part
+        Check if moving the given piece doesn't break the hive into parts
         """
 
-        piece_type = self[piece][-1]
-        self[piece] = self[piece][:-1]
+        piece = self.remove_piece(cell)
 
-        queue = deque([piece])
+        queue = deque(self.neighbors(*cell))
         visited: set[Cell] = set()
 
         consume(floodfill(visited, queue, self.neighbors, lambda _: None))
 
         ok = len(visited) == len(self.hive)
 
-        self[piece] += piece_type
+        self.add_piece(cell, piece)
 
         return ok
 
@@ -302,12 +313,10 @@ class Player(Board):
         assert self[ant].upper() == Piece.Ant
 
         move = functools.partial(Move, Piece.Ant, ant)
-        visited: set[Cell] = set()
-        queue = deque([ant])
+        visited: set[Cell] = {ant}
+        queue = deque(self.valid_steps(*ant))
 
-        iterator = floodfill(visited, queue, self.valid_steps, move)
-        next(iterator)  # skip first element - ant's position
-        return iterator
+        return floodfill(visited, queue, self.valid_steps, move)
 
     def beetles_moves(self, beetle: Cell) -> Iterator[Move]:
         """
@@ -412,11 +421,11 @@ class Player(Board):
             cell for cell in self.neighboring_cells(p, q) if not self.is_empty(*cell)
         )
 
-    def has_neighbor(self, p: int, q: int) -> bool:
+    def has_neighbor(self, p: int, q: int, exclude: Cell | None = None) -> bool:
         """
         Check if the given cell has at least one neighbor
         """
-        return any(self.neighbors(p, q))
+        return any(neighbor for neighbor in self.neighbors(p, q) if neighbor != exclude)
 
     def valid_steps(
         self,
@@ -440,7 +449,7 @@ class Player(Board):
         return (
             neighbor
             for neighbor in base_iter
-            if self.has_neighbor(*neighbor)
+            if self.has_neighbor(*neighbor, exclude=(p, q))
             and self.can_squeeze_through(p, q, *neighbor)
         )
 
@@ -518,6 +527,22 @@ class Player(Board):
             self.in_board(*cell) and self.is_empty(*cell) for cell in (left, right)
         )
 
+    def remove_piece(self, cell: Cell) -> str:
+        """
+        Remove the top-most piece at the given cell
+        """
+        piece = self[cell][-1]
+        self[cell] = self[cell][:-1]
+        self.hive.remove(cell)
+        return piece
+
+    def add_piece(self, cell: Cell, piece: str) -> None:
+        """
+        Place the given piece at the given cell
+        """
+        self[cell] += piece
+        self.hive.add(cell)
+
     def play_move(self, move: Move) -> None:
         """
         Play the given move
@@ -527,16 +552,12 @@ class Player(Board):
         end = move.end
 
         # add the piece to its new position
-        self[end] += piece
-        self.hive.add(end)
+        self.add_piece(end, piece)
 
         if start is not None:
             # remove the piece from its old position
-            assert self[start][-1] == piece
-            self[start] = self[start][:-1]
-
-            if self[start] == "":
-                self.hive.remove(start)
+            removed = self.remove_piece(start)
+            assert removed == piece
 
     def reverse_move(self, move: Move) -> None:
         """
@@ -548,13 +569,11 @@ class Player(Board):
 
         if start is not None:
             # add the piece back to its old position
-            self[start] += self[end][-1]
-            self.hive.add(start)
+            self.add_piece(start, piece)
 
         # remove the piece from its new position
-        assert self[end][-1] == piece
-        self[end] = self[end][:-1]
-        self.hive.remove(end)
+        removed = self.remove_piece(end)
+        assert removed == piece
 
     ## allows indexing the board directly using player[cell] or player[p, q]
     def __getitem__(self, cell: Cell) -> str:
