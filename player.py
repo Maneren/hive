@@ -371,17 +371,17 @@ class Player(Board):
                 p, q = gs
                 gs = (p + dp, q + dq)
 
-                if not self.in_board(grasshopper):
+                if not self.in_board(gs):
                     break
 
                 # if tile is not empty, skip the piece
-                if not self.is_empty(grasshopper):
+                if not self.is_empty(gs):
                     skipped = True
                     continue
 
                 # if tile is empty and at least one piece was skipped, yield move
-                if skipped:
-                    yield move(grasshopper)
+                if skipped and self.has_neighbor(gs):
+                    yield move(gs)
 
     def spiders_moves(self, spider: Cell) -> Iterator[Move]:
         """
