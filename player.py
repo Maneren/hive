@@ -20,7 +20,7 @@ Cell = tuple[int, int]
 Direction = tuple[int, int]
 MoveBrute = list[str, int, int, int, int] | list[str, None, None, int, int]
 
-DIRECTIONS = ((0, -1), (1, -1), (1, 0), (0, 1), (-1, 1), (-1, 0))
+DIRECTIONS = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)]
 
 T = TypeVar("T")
 
