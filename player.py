@@ -406,7 +406,7 @@ class Player(Board):
         if not possible_moves:
             return []
 
-        return random.choice(possible_moves).to_brute(self.myColorIsUpper)
+        return random.choice(possible_moves).to_brute(self.upper)
 
 
     def moving_doesnt_break_hive(self, cell: Cell) -> bool:
