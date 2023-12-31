@@ -202,6 +202,16 @@ class LiftPiece:
 
 
 class Player(Board):
+    """
+    A player for the hive game. Public API includes the constructor and the move method.
+
+    ## State:
+    Inner state consists of a set of cells that together create the hive. This is done
+    in order to speed up lot of the calculations inside and thus all of the methods
+    implicitly depends on it. The properties should be independent and stateless,
+    unless explicitly specified otherwise in their docstrings.
+    """
+
     hive: set[Cell]
 
     def __init__(
@@ -250,7 +260,7 @@ class Player(Board):
     @property
     def my_pieces_on_board(self) -> Iterator[tuple[Piece, Cell]]:
         """
-        Iterator over all my pieces on the board. Uses self.hive
+        Iterator over all my pieces on the board. Uses self.hive directly
         """
         return (
             (Piece.from_str(self.top_piece_in(cell)), cell)
@@ -270,7 +280,7 @@ class Player(Board):
     @property
     def my_movable_pieces(self) -> Iterator[tuple[Piece, Cell]]:
         """
-        Iterator over all my movable pieces
+        Iterator over all my movable pieces. Uses sellf.hive transitively
         """
         return (
             (piece, cell)
@@ -281,7 +291,7 @@ class Player(Board):
     @property
     def rival_pieces_on_board(self) -> Iterator[tuple[Piece, Cell]]:
         """
-        Iterator over all rival pieces on the board. Uses self.hive
+        Iterator over all rival pieces on the board. Uses self.hive directly
         """
         return (
             (Piece.from_str(self[cell][-1]), cell)
