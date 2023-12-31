@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import math
-from typing import TypeAlias
 
 from PIL import Image, ImageDraw
 
 # DO NOT MODIFY THIS FILE
 # THIS FILE IS NOT UPLOADED TO BRUTE (all changes in it will be ignored by Brute)
 
-BoardData: TypeAlias = dict[int, dict[int, str]]
-Tile: TypeAlias = tuple[int, int]
-PiecesDict: TypeAlias = dict[str, int]
+BoardData = dict[int, dict[int, str]]
+Tile = tuple[int, int]
+PiecesDict = dict[str, int]
 
 
 class Board:
