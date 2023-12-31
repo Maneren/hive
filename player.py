@@ -702,13 +702,13 @@ class Player(Board):
         start = move.start
         end = move.end
 
-        # add the piece to its new position
-        self.add_piece_to_board(end, piece)
-
         if start is not None:
             # remove the piece from its old position
             removed = self.remove_piece_from_board(start)
             assert removed == piece
+
+        # add the piece to its new position
+        self.add_piece_to_board(end, piece)
 
     def reverse_move(self, move: Move) -> None:
         """
