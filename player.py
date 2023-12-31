@@ -4,6 +4,7 @@ import functools
 from collections import deque
 from dataclasses import dataclass
 from enum import IntEnum, StrEnum
+from itertools import chain
 from typing import Callable, Iterator, TypeVar
 
 from base import Board
@@ -300,18 +301,19 @@ class Player(Board):
             Piece.Spider: self.spiders_moves,
         }
 
-        yield from (
+        place_iter = (
             Move(piece, None, cell)
             for cell in self.valid_placements
             for piece in self.my_placable_pieces
         )
 
-        if self.myMove >= 3:
-            yield from (
-                move
-                for piece, cell in self.my_movable_pieces
-                for move in mapping[piece](cell)
-            )
+        move_iter = (
+            move
+            for piece, cell in self.my_movable_pieces
+            for move in mapping[piece](cell)
+        )
+
+        return chain(place_iter, move_iter) if self.myMove >= 3 else move_iter
 
     @property
     def cells_around_hive(self) -> set[Cell]:
