@@ -5,7 +5,7 @@ from collections import deque
 from dataclasses import dataclass
 from enum import Enum, IntEnum
 from itertools import chain
-from typing import Callable, Iterator, TypeVar
+from typing import Any, Callable, Iterator, TypeVar
 
 from base import Board
 
@@ -184,6 +184,10 @@ class Node:
 
 
 class LiftPiece:
+    """
+    Lifts a piece from the board for the duration of the context
+    """
+
     player: Player
     cell: Cell
 
@@ -197,7 +201,7 @@ class LiftPiece:
         self.piece = self.player.remove_piece_from_board(self.cell)
         return self.piece
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # noqa: ANN001
+    def __exit__(self, *args: Any) -> None:
         self.player.add_piece_to_board(self.cell, self.piece)
 
 
