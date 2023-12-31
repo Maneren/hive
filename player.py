@@ -194,11 +194,11 @@ class LiftPiece:
         self.cell = cell
 
     def __enter__(self) -> str:
-        self.piece = self.player.remove_piece(self.cell)
+        self.piece = self.player.remove_piece_from_board(self.cell)
         return self.piece
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # noqa: ANN001
-        self.player.add_piece(self.cell, self.piece)
+        self.player.add_piece_to_board(self.cell, self.piece)
 
 
 class Player(Board):
@@ -253,7 +253,7 @@ class Player(Board):
         Iterator over all my pieces on the board. Uses self.hive
         """
         return (
-            (Piece.from_str(self[cell][-1]), cell)
+            (Piece.from_str(self.top_piece_in(cell)), cell)
             for cell in self.hive
             if self.is_my_cell(cell)
         )
@@ -284,7 +284,9 @@ class Player(Board):
         Iterator over all valid placements
         """
         return (
-            cell for cell in self.cells_around_hive if self.borders_only_my_pieces(cell)
+            cell
+            for cell in self.cells_around_hive
+            if self.neighbors_only_my_pieces(cell)
         )
 
     @property
@@ -405,8 +407,7 @@ class Player(Board):
                 return (
                     neighbor
                     for neighbor in self.empty_neighboring_cells(cell)
-                    if neighbor in around_hive
-                    and self.can_squeeze_through(cell, neighbor)
+                    if neighbor in around_hive and self.can_move_to(cell, neighbor)
                 )
 
             move = functools.partial(Move, Piece.Ant, ant)
@@ -525,11 +526,11 @@ class Player(Board):
             if not self.is_empty(neighbor)
         )
 
-    def has_neighbor(self, cell: Cell, exclude: Cell | None = None) -> bool:
+    def has_neighbor(self, cell: Cell, ignore: Cell | None = None) -> bool:
         """
         Check if the given cell has at least one neighbor
         """
-        return any(neighbor for neighbor in self.neighbors(cell) if neighbor != exclude)
+        return any(neighbor for neighbor in self.neighbors(cell) if neighbor != ignore)
 
     def valid_steps(
         self,
@@ -539,7 +540,7 @@ class Player(Board):
         """
         Iterator over all cells neighboring (p,q), that can be accessed from (p,q) and
         moving to which won't leave the hive (that means they have at least
-        one neighbor). By deafault, only empty cells are returned, but optionally
+        one neighbor). By default, only empty cells are returned, but optionally
         non-empty cells can be included as well.
         """
 
@@ -547,15 +548,21 @@ class Player(Board):
             return (
                 neighbor
                 for neighbor in self.neighboring_cells(cell)
-                if self.has_neighbor(neighbor, exclude=cell)
+                if self.has_neighbor(neighbor, ignore=cell)
             )
 
         return (
             neighbor
             for neighbor in self.empty_neighboring_cells(cell)
-            if self.has_neighbor(neighbor, exclude=cell)
-            and self.can_squeeze_through(cell, neighbor)
+            if self.has_neighbor(neighbor, ignore=cell)
+            and self.can_move_to(cell, neighbor)
         )
+
+    def top_piece_in(self, cell: Cell) -> str:
+        """
+        Returns the top piece in given cell
+        """
+        return self[cell][-1]
 
     def is_my_cell(self, cell: Cell) -> bool:
         """
@@ -580,23 +587,29 @@ class Player(Board):
         return 0 <= q < self.size and -(q // 2) <= p < self.size - q // 2
 
     def rotate_left(self, direction: Direction) -> Direction:
+        """
+        Returns direction rotated one tile to left
+        """
         p, q = direction
         return p + q, -p
 
     def rotate_right(self, direction: Direction) -> Direction:
+        """
+        Returns direction rotated one tile to right
+        """
         p, q = direction
         return -q, p + q
 
-    def borders_only_my_pieces(self, cell: Cell) -> bool:
+    def neighbors_only_my_pieces(self, cell: Cell) -> bool:
         """
         Check if all neighbors of (p,q) are owned by the player
         """
         return all(self.is_my_cell(neighbor) for neighbor in self.neighbors(cell))
 
-    def can_squeeze_through(self, origin: Cell, target: Cell) -> bool:
+    def can_move_to(self, origin: Cell, target: Cell) -> bool:
         """
         Check if a piece can move from (p,q) to (np,nq), ie. there are no other pieces
-        on the sides blocking it.
+        or board edges on the sides blocking it.
         """
         p, q = origin
         np, nq = target
@@ -613,7 +626,7 @@ class Player(Board):
             self.in_board(cell) and self.is_empty(cell) for cell in (left, right)
         )
 
-    def remove_piece(self, cell: Cell) -> str:
+    def remove_piece_from_board(self, cell: Cell) -> str:
         """
         Remove the top-most piece at the given cell
         """
@@ -622,7 +635,7 @@ class Player(Board):
         self.hive.remove(cell)
         return piece
 
-    def add_piece(self, cell: Cell, piece: str) -> None:
+    def add_piece_to_board(self, cell: Cell, piece: str) -> None:
         """
         Place the given piece at the given cell
         """
@@ -638,11 +651,11 @@ class Player(Board):
         end = move.end
 
         # add the piece to its new position
-        self.add_piece(end, piece)
+        self.add_piece_to_board(end, piece)
 
         if start is not None:
             # remove the piece from its old position
-            removed = self.remove_piece(start)
+            removed = self.remove_piece_from_board(start)
             assert removed == piece
 
     def reverse_move(self, move: Move) -> None:
@@ -655,10 +668,10 @@ class Player(Board):
 
         if start is not None:
             # add the piece back to its old position
-            self.add_piece(start, piece)
+            self.add_piece_to_board(start, piece)
 
         # remove the piece from its new position
-        removed = self.remove_piece(end)
+        removed = self.remove_piece_from_board(end)
         assert removed == piece
 
     ## allows indexing the board directly using player[cell] or player[p, q]
