@@ -279,6 +279,17 @@ class Player(Board):
         )
 
     @property
+    def rival_pieces_on_board(self) -> Iterator[tuple[Piece, Cell]]:
+        """
+        Iterator over all rival pieces on the board. Uses self.hive
+        """
+        return (
+            (Piece.from_str(self[cell][-1]), cell)
+            for cell in self.hive
+            if not self.is_my_cell(cell)
+        )
+
+    @property
     def valid_placements(self) -> Iterator[Cell]:
         """
         Iterator over all valid placements
