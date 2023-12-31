@@ -280,7 +280,7 @@ class Player(Board):
     @property
     def my_movable_pieces(self) -> Iterator[tuple[Piece, Cell]]:
         """
-        Iterator over all my movable pieces. Uses sellf.hive transitively
+        Iterator over all my movable pieces. Uses self.hive transitively
         """
         return (
             (piece, cell)
