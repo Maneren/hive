@@ -401,7 +401,8 @@ class Player(Board):
         """
 
         with LiftPiece(self, cell):
-            queue = deque(self.neighbors(cell))
+            start = next(self.neighbors(cell))
+            queue = deque([start])
             visited: set[Cell] = set()
 
             consume(floodfill(visited, queue, self.neighbors, lambda _: None))
