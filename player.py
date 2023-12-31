@@ -160,27 +160,22 @@ class Node:
 
         self.depth += 1
 
-        if self.depth == 1:
-            self.initialize_children(player)
-            return
+        with PlayMove(player, self.move):
+            if self.depth == 1:
+                self.initialize_children(player)
+                return
 
-        player.play_move(self.move)
-
-        for child in self.children:
-            child.next_depth(player)
-
-        player.reverse_move(self.move)
+            for child in self.children:
+                child.next_depth(player)
 
     def initialize_children(self, player: Player) -> None:
         """
         Initialize the children of the current node
         """
-        player.play_move(self.move)
 
-        for move in player.valid_moves:
-            self.children.append(Node(move, not self.player_is_upper))
-
-        player.reverse_move(self.move)
+        self.children = [
+            Node(move, not self.player_is_upper) for move in player.valid_moves
+        ]
 
 
 class LiftPiece:
@@ -203,6 +198,25 @@ class LiftPiece:
 
     def __exit__(self, *args: Any) -> None:
         self.player.add_piece_to_board(self.cell, self.piece)
+
+
+class PlayMove:
+    """
+    Plays a move for the duration of the context
+    """
+
+    player: Player
+    move: Move
+
+    def __init__(self, player: Player, move: Move) -> None:
+        self.player = player
+        self.move = move
+
+    def __enter__(self) -> None:
+        self.player.play_move(self.move)
+
+    def __exit__(self, *args: Any) -> None:
+        self.player.reverse_move(self.move)
 
 
 class Player(Board):
