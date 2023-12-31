@@ -373,17 +373,15 @@ class Player(Board):
 
         self.hive = set(self.nonempty_cells)
 
-        if not self.tournament:
-            possible_moves = [*self.valid_moves]
+        possible_moves = [*self.valid_moves]
 
-            if not possible_moves:
-                return []
+        if not possible_moves:
+            return []
 
-            import random
+        import random
 
-            return random.choice(possible_moves).to_brute(self.myColorIsUpper)
+        return random.choice(possible_moves).to_brute(self.myColorIsUpper)
 
-        return []
 
     def moving_doesnt_break_hive(self, cell: Cell) -> bool:
         """
