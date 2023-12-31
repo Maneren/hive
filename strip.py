@@ -16,32 +16,64 @@ input_file = pathlib.Path(input_file_path).read_text()
 
 
 class TypeHintRemover(ast.NodeTransformer):
-    # remove type annotations and docstrings
+    # remove type annotations and docstrings from functions
     def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.AST | None:
-        node.returns = None
-        if node.args.args:
-            for arg in node.args.args:
-                arg.annotation = None
-        first = node.body[0]
-        if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant):
-            node.body = node.body[1:]
-
         self.generic_visit(node)
+
+        node.returns = None
+
+        if not node.body:
+            return node
+
+        first = node.body[0]
+        if (
+            isinstance(first, ast.Expr)
+            and hasattr(first, "value")
+            and isinstance(
+                first.value,
+                ast.Str,
+            )
+        ):
+            node.body = node.body[1:]
 
         return node
 
-    # remove type annotations, docstrings and handle dataclasses
+    # remove type annotations from args
+    def visit_arg(self, node: ast.arg) -> ast.AST | None:
+        self.generic_visit(node)
+
+        node.annotation = None
+        return node
+
+    # remove type annotations, docstrings from classes and handle dataclasses
     def visit_ClassDef(self, node: ast.ClassDef) -> ast.AST | None:
+        self.generic_visit(node)
+
         # remove all docstrings
+        if not node.body:
+            return node
+
         first = node.body[0]
-        if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant):
+        if (
+            isinstance(first, ast.Expr)
+            and hasattr(first, "value")
+            and isinstance(
+                first.value,
+                ast.Str,
+            )
+        ):
             node.body = node.body[1:]
 
+        # remove and collect all class attributes
         class_vars = []
-        while (first := node.body[0]) and isinstance(first, ast.AnnAssign):
-            class_vars.append(node.body.pop(0))
+        to_pop = []
+        for i, subnode in enumerate(node.body):
+            if isinstance(subnode, ast.AnnAssign):
+                class_vars.append(subnode)
+                to_pop.append(i)
 
-        self.generic_visit(node)
+        for i in reversed(to_pop):
+            del node.body[i]
 
         decorators = [decorator.id for decorator in node.decorator_list]
 
@@ -115,7 +147,8 @@ class TypeHintRemover(ast.NodeTransformer):
 
     # remove all type annotations from assignments
     def visit_AnnAssign(self, node: ast.AnnAssign) -> ast.AST | None:
-        return ast.Assign([node.target], node.value) if node.value else None
+        new = ast.Assign([node.target], node.value)
+        return self.visit_Assign(new)
 
     # remove all import 'typing' statements
     def visit_Import(self, node: ast.Import) -> ast.AST | None:
@@ -126,6 +159,7 @@ class TypeHintRemover(ast.NodeTransformer):
     def visit_ImportFrom(self, node: ast.ImportFrom) -> ast.AST | None:
         return node if node.module not in {"typing", "__future__"} else None
 
+    # remove all assert statements
     def visit_Assert(self, _node: ast.Assert) -> ast.AST | None:
         return None
 
