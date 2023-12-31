@@ -490,14 +490,16 @@ class Player(Board):
                     if not self.in_board(gs):
                         break
 
-                    # if tile is not empty, skip the piece
-                    if not self.is_empty(gs):
-                        skipped = True
-                        continue
+                    # if tile is empty and something was skipped, yield move
+                    # else try different direction
+                    if self.is_empty(gs):
+                        if skipped:
+                            yield move(gs)
 
-                    # if tile is empty and at least one piece was skipped, yield move
-                    if skipped and self.has_neighbor(gs):
-                        yield move(gs)
+                        break
+
+                    # if tile is not empty, skip the piece
+                    skipped = True
 
     def spiders_moves(self, spider: Cell) -> Iterator[Move]:
         """
