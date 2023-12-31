@@ -677,11 +677,14 @@ class Player(Board):
 
     def remove_piece_from_board(self, cell: Cell) -> str:
         """
-        Remove the top-most piece at the given cell
+        Remove the top-most piece at the given cell and return it
         """
         piece = self[cell][-1]
         self[cell] = self[cell][:-1]
-        self.hive.remove(cell)
+
+        if self.is_empty(cell):
+            self.hive.remove(cell)
+
         return piece
 
     def add_piece_to_board(self, cell: Cell, piece: str) -> None:
