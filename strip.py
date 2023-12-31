@@ -31,7 +31,7 @@ class TypeHintRemover(ast.NodeTransformer):
             and hasattr(first, "value")
             and isinstance(
                 first.value,
-                ast.Str,
+                ast.Constant,
             )
         ):
             node.body = node.body[1:]
@@ -47,8 +47,6 @@ class TypeHintRemover(ast.NodeTransformer):
 
     # remove type annotations, docstrings from classes and handle dataclasses
     def visit_ClassDef(self, node: ast.ClassDef) -> ast.AST | None:
-        self.generic_visit(node)
-
         # remove all docstrings
         if not node.body:
             return node
@@ -59,7 +57,7 @@ class TypeHintRemover(ast.NodeTransformer):
             and hasattr(first, "value")
             and isinstance(
                 first.value,
-                ast.Str,
+                ast.Constant,
             )
         ):
             node.body = node.body[1:]
@@ -73,13 +71,15 @@ class TypeHintRemover(ast.NodeTransformer):
                 to_pop.append(i)
 
         for i in reversed(to_pop):
-            del node.body[i]
+            node.body.pop(i)
 
         decorators = [decorator.id for decorator in node.decorator_list]
 
         if "dataclass" in decorators:
             node.decorator_list = []
             self.transform_dataclass(class_vars, node)
+
+        self.generic_visit(node)
 
         return node
 
@@ -121,25 +121,24 @@ class TypeHintRemover(ast.NodeTransformer):
 
         if (
             isinstance(value, ast.BinOp)
-            and (value := value.left)
-            and isinstance(value, ast.Name)
-            and value.id in ("list", "dict", "tuple")
+            and (left := value.left)
+            and isinstance(left, ast.Subscript)
         ):
-            value = value.left
+            value = left
 
         if (
             isinstance(value, ast.Subscript)
-            and (value := value.value)
-            and isinstance(value, ast.Name)
-            and value.id in ("list", "dict", "tuple")
+            and (subvalue := value.value)
+            and isinstance(subvalue, ast.Name)
+            and subvalue.id in ("list", "dict", "tuple")
         ):
             return None
 
         if (
             isinstance(value, ast.Call)
-            and (value := value.func)
-            and isinstance(value, ast.Name)
-            and value.id == "TypeVar"
+            and (func := value.func)
+            and isinstance(func, ast.Name)
+            and func.id == "TypeVar"
         ):
             return None
 
@@ -147,6 +146,9 @@ class TypeHintRemover(ast.NodeTransformer):
 
     # remove all type annotations from assignments
     def visit_AnnAssign(self, node: ast.AnnAssign) -> ast.AST | None:
+        if node.value is None:
+            return None
+
         new = ast.Assign([node.target], node.value)
         return self.visit_Assign(new)
 
