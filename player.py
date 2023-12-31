@@ -337,7 +337,8 @@ class Player(Board):
 
     def move(self) -> MoveBrute:
         """
-        Returns a best move for the current self.board.
+        Returns a best move for the current self.board. Has to first properly initialize
+        the inner state.
 
         Format:
             [piece, oldP, oldQ, newP, newQ] - move from (oldP, oldQ) to (newP, newQ)
@@ -348,6 +349,7 @@ class Player(Board):
         """
 
         self.hive = set(self.nonempty_cells)
+
         if not self.tournament:
             possible_moves = [*self.valid_moves]
 
