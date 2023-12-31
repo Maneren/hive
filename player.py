@@ -302,7 +302,8 @@ class Player(Board):
     @property
     def valid_placements(self) -> Iterator[Cell]:
         """
-        Iterator over all valid placements
+        Iterator over all valid placements. Uses self.hive transitively
+        and expects at least one piece to be already placed
         """
         return (
             cell
@@ -336,7 +337,7 @@ class Player(Board):
             for move in mapping[piece](cell)
         )
 
-        return chain(place_iter, move_iter) if self.myMove >= 3 else move_iter
+        return chain(place_iter, move_iter) if self.myMove >= 3 else place_iter
 
     @property
     def cells_around_hive(self) -> set[Cell]:
@@ -371,14 +372,21 @@ class Player(Board):
         *Note: the API has to stay this way to be compatible with Brute*
         """
 
+        import random
+
         self.hive = set(self.nonempty_cells)
+
+        if self.myMove == 0:
+            if not self.hive:
+                return Move(Piece.Spider, None, (3, 6)).to_brute(self.upper)
+
+            placement = random.choice([*self.cells_around_hive])
+            return Move(Piece.Spider, None, placement).to_brute(self.upper)
 
         possible_moves = [*self.valid_moves]
 
         if not possible_moves:
             return []
-
-        import random
 
         return random.choice(possible_moves).to_brute(self.myColorIsUpper)
 
