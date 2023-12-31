@@ -326,6 +326,15 @@ class Player(Board):
             for neighbor in self.empty_neighboring_cells(cell)
         }
 
+        # Second option, I have to think about it more
+        # visited: set[Cell] = set()
+        #
+        # for cell in self.hive:
+        #     for neighbor in self.empty_neighboring_cells(cell):
+        #         if neighbor not in visited:
+        #             visited.add(neighbor)
+        #             yield neighbor
+
     def move(self) -> MoveBrute:
         """
         Returns a best move for the current self.board.
