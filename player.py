@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 from collections import deque
 from dataclasses import dataclass
-from enum import IntEnum, StrEnum
+from enum import Enum, IntEnum
 from itertools import chain
 from typing import Callable, Iterator, TypeVar
 
@@ -76,7 +76,7 @@ def cells_are_neighbors(cell1: Cell, cell2: Cell) -> bool:
     return (p1 - p2, q1 - q2) in DIRECTIONS
 
 
-class Piece(StrEnum):
+class Piece(str, Enum):
     """
     Possible pieces
     """
