@@ -403,11 +403,10 @@ class Player(Board):
         Queen can move one step in any direction.
         """
 
-        assert self[queen].upper() == Piece.Queen
-
-        move = functools.partial(Move, Piece.Queen, queen)
-
-        return (move(target) for target in self.valid_steps(queen))
+        with LiftPiece(self, queen) as piece:
+            assert piece.upper() == Piece.Queen, f"{piece} at {queen} is not a Queen"
+            move = functools.partial(Move, Piece.Queen, queen)
+            yield from map(move, self.valid_steps(queen))
 
     def ants_moves(self, ant: Cell) -> Iterator[Move]:
         """
@@ -418,7 +417,7 @@ class Player(Board):
         """
 
         with LiftPiece(self, ant) as piece:
-            assert piece.upper() == Piece.Ant
+            assert piece.upper() == Piece.Ant, f"{piece} at {ant} is not an Ant"
 
             around_hive = set(self.cells_around_hive)
 
@@ -443,13 +442,12 @@ class Player(Board):
         on top of other pieces.
         """
 
-        assert self[beetle].upper() == Piece.Beetle
+        with LiftPiece(self, beetle) as piece:
+            assert piece.upper() == Piece.Beetle, f"{piece} at {beetle} is not a Beetle"
 
-        move = functools.partial(Move, Piece.Beetle, beetle)
+            move = functools.partial(Move, Piece.Beetle, beetle)
 
-        return (
-            move(target) for target in self.valid_steps(beetle, can_crawl_over=True)
-        )
+            yield from map(move, self.valid_steps(beetle, can_crawl_over=True))
 
     def grasshoppers_moves(self, grasshopper: Cell) -> Iterator[Move]:
         """
@@ -459,31 +457,34 @@ class Player(Board):
         jump over at least one other piece.
         """
 
-        assert self[grasshopper].upper() == Piece.Grasshopper
+        with LiftPiece(self, grasshopper) as piece:
+            assert (
+                piece.upper() == Piece.Grasshopper
+            ), f"{piece} at {grasshopper} is not a Grasshopper"
 
-        move = functools.partial(Move, Piece.Grasshopper, grasshopper)
+            move = functools.partial(Move, Piece.Grasshopper, grasshopper)
 
-        # for each direction
-        for dp, dq in DIRECTIONS:
-            gs = grasshopper  # copy the position
-            skipped = False
+            # for each direction
+            for dp, dq in DIRECTIONS:
+                gs = grasshopper  # copy the position
+                skipped = False
 
-            # move in that direction until edge of board
-            while True:
-                p, q = gs
-                gs = (p + dp, q + dq)
+                # move in that direction until edge of board
+                while True:
+                    p, q = gs
+                    gs = (p + dp, q + dq)
 
-                if not self.in_board(gs):
-                    break
+                    if not self.in_board(gs):
+                        break
 
-                # if tile is not empty, skip the piece
-                if not self.is_empty(gs):
-                    skipped = True
-                    continue
+                    # if tile is not empty, skip the piece
+                    if not self.is_empty(gs):
+                        skipped = True
+                        continue
 
-                # if tile is empty and at least one piece was skipped, yield move
-                if skipped and self.has_neighbor(gs):
-                    yield move(gs)
+                    # if tile is empty and at least one piece was skipped, yield move
+                    if skipped and self.has_neighbor(gs):
+                        yield move(gs)
 
     def spiders_moves(self, spider: Cell) -> Iterator[Move]:
         """
@@ -493,28 +494,29 @@ class Player(Board):
         to the hive.
         """
 
-        assert self[spider].upper() == Piece.Spider
+        with LiftPiece(self, spider) as piece:
+            assert piece.upper() == Piece.Spider, f"{piece} at {spider} is not a Spider"
 
-        move = functools.partial(Move, Piece.Spider, spider)
-        visited: set[Cell] = set()
-        stack = [spider]
+            move = functools.partial(Move, Piece.Spider, spider)
+            visited: set[Cell] = set()
+            stack = [spider]
 
-        for _ in range(3):
-            next_stack: list[Cell] = []
+            for _ in range(3):
+                next_stack: list[Cell] = []
 
-            for item in stack:
-                visited.add(item)
-                next_stack.extend(
-                    neighbor
-                    for neighbor in self.valid_steps(item)
-                    if neighbor not in visited
-                )
+                for item in stack:
+                    visited.add(item)
+                    next_stack.extend(
+                        neighbor
+                        for neighbor in self.valid_steps(item)
+                        if neighbor not in visited
+                    )
 
-            stack = next_stack
-            if not stack:
-                break
+                stack = next_stack
+                if not stack:
+                    break
 
-        return map(move, stack)
+            yield from map(move, stack)
 
     def neighboring_cells(self, cell: Cell) -> Iterator[Cell]:
         """
@@ -545,11 +547,11 @@ class Player(Board):
             if not self.is_empty(neighbor)
         )
 
-    def has_neighbor(self, cell: Cell, ignore: Cell | None = None) -> bool:
+    def has_neighbor(self, cell: Cell) -> bool:
         """
         Check if the given cell has at least one neighbor
         """
-        return any(neighbor for neighbor in self.neighbors(cell) if neighbor != ignore)
+        return any(self.neighbors(cell))
 
     def valid_steps(
         self,
@@ -567,14 +569,13 @@ class Player(Board):
             return (
                 neighbor
                 for neighbor in self.neighboring_cells(cell)
-                if self.has_neighbor(neighbor, ignore=cell)
+                if self.has_neighbor(neighbor)
             )
 
         return (
             neighbor
             for neighbor in self.empty_neighboring_cells(cell)
-            if self.has_neighbor(neighbor, ignore=cell)
-            and self.can_move_to(cell, neighbor)
+            if self.has_neighbor(neighbor) and self.can_move_to(cell, neighbor)
         )
 
     def top_piece_in(self, cell: Cell) -> str:
