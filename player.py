@@ -522,9 +522,24 @@ class Player(Board):
         if not nodes:
             return []
 
+        depth = 0
+
         while time.perf_counter() - start < 0.9:
+            depth += 1
+
             for node in nodes:
                 node.next_depth(self)
+
+            if depth <= 2:
+                limit = len(nodes)
+            elif depth <= 5:
+                limit = 5
+            else:
+                limit = 2
+
+            if limit < len(nodes):
+                nodes.sort(reverse=True)
+                nodes = nodes[:limit]
 
         best = max(nodes)
 
