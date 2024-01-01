@@ -101,12 +101,19 @@ class Piece(str, Enum):
 
 @dataclass
 class Move:
+    """
+    Holds a move - piece, start cell and end cell. Start is None for placing a new piece
+    """
+
     _piece: Piece
     start: Cell | None
     end: Cell
 
     def to_brute(self, upper: bool) -> MoveBrute:
-        piece = self._piece.value if upper else self._piece.lower()
+        """
+        Convert the move to brute representation
+        """
+        piece = self.piece_str(upper)
 
         if self.start is None:
             return [piece, None, None, *self.end]
@@ -114,6 +121,9 @@ class Move:
         return [piece, *self.start, *self.end]
 
     def piece_str(self, upper: bool) -> str:
+        """
+        Return the string representation of the used piece
+        """
         return self._piece.upper() if upper else self._piece.lower()
 
     def __str__(self) -> str:
@@ -135,6 +145,10 @@ class State(IntEnum):
 
 
 class Node:
+    """
+    Node in the minimax tree.
+    """
+
     move: Move
     player_is_upper: bool
     score: int
