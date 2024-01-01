@@ -490,7 +490,7 @@ class Player(Board):
         import random
         import time
 
-        start = time.time()
+        start = time.perf_counter()
 
         self.hive = set(self.nonempty_cells)
         self._board = convert_board(self.board)
@@ -515,15 +515,18 @@ class Player(Board):
         if not nodes:
             return []
 
-        while time.time() - start < 0.95:
+        while time.perf_counter() - start < 0.9:
             for node in nodes:
                 node.next_depth(self)
 
         best = max(nodes)
 
-        end = time.time()
+        end = time.perf_counter()
 
         print(f"Searched to depth {best.depth} in {end - start} seconds")
+        elapsed = end - start
+
+        print(f"Searched to depth {depth} ({evaluated} positions) in {elapsed} seconds")
 
         return best.move.to_brute(self.upper)
 
