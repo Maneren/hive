@@ -433,7 +433,10 @@ class Player(Board):
         """
 
         with LiftPiece(self, cell):
-            start = next(self.neighbors(cell))
+            start = next(self.neighbors(cell), None)
+            if not start:
+                return False
+
             queue = deque([start])
             visited: set[Cell] = set()
 
