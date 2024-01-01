@@ -9,6 +9,8 @@ from typing import Any, Callable, Iterator, TypeVar
 
 from base import Board
 
+TEST = False
+
 # Player template for HIVE --- ALP semestral work
 # Vojta Vonasek, 2023
 
@@ -71,13 +73,68 @@ def convert_board(board: BoardDataBrute) -> BoardData:
     return {p: {q: list(board[p][q]) for q in board[p]} for p in board}
 
 
-def cells_are_neighbors(cell1: Cell, cell2: Cell) -> bool:
+class Criteria(IntEnum):
+    BASE = 0
+    ANT_BLOCKING = 1
+    BEETLE_BLOCKING = 2
+    BEETLE_BLOCKING_QUEEN = 3
+    QUEEN_NEIGHBOR = 4
+    QUEEN_SURROUNDED = 5
+    QUEEN_BLOCKED = 6
+    SPIDER_BLOCKING = 7
+
+
+EVAL_TABLE_MY = [1, 600, 200, 1000, -400, -1000000, -400, 200]
+EVAL_TABLE_RIVAL = [-1, -500, -200, -1200, 400, 1000000, 400, -100]
+
+
+def evaluate_cell(
+    player: Player,
+    cell: Cell,
+) -> tuple[int, State]:
+    my = player.is_my_cell(cell)
+    piece = Piece.from_str(player.top_piece_in(cell))
+
+    table = EVAL_TABLE_MY if my else EVAL_TABLE_RIVAL
+
+    score = table[Criteria.BASE]
+
+    if piece == Piece.Ant:
+        if count(player.neighbors(cell)) == 1:
+            score = table[Criteria.ANT_BLOCKING]
+    elif piece == Piece.Beetle:
+        if len(player[cell]) == 2:
+            score = table[Criteria.BEETLE_BLOCKING]
+            if player[cell][0].upper() == Piece.Queen:
+                score += table[Criteria.BEETLE_BLOCKING_QUEEN]
+    elif piece == Piece.Queen:
+        c = count(player.neighbors(cell))
+
+        if c == 6:
+            return table[Criteria.QUEEN_SURROUNDED], State.LOSS if my else State.WIN
+
+        score = table[Criteria.QUEEN_NEIGHBOR] * (c - 1)
+
+        if not player.moving_doesnt_break_hive(cell):
+            score += table[Criteria.QUEEN_BLOCKED]
+
+    return score, State.RUNNING
+
+
+def evaluate_position(player: Player) -> tuple[int, State]:
     """
-    Check if two cells are neighbors
+    Evaluate the position from the POV of the given player
     """
-    p1, q1 = cell1
-    p2, q2 = cell2
-    return (p1 - p2, q1 - q2) in DIRECTIONS
+
+    score = 0
+
+    for cell in player.hive:
+        piece_score, game_state = evaluate_cell(player, cell)
+        if game_state:
+            return piece_score, game_state
+        score += piece_score
+
+    return score, State.RUNNING
 
 
 class Piece(str, Enum):
@@ -150,7 +207,7 @@ class Node:
     """
 
     move: Move
-    player_is_upper: bool
+    player: Player
     score: int
     children: list[Node]
     depth: int
@@ -159,41 +216,67 @@ class Node:
     def __init__(
         self,
         move: Move,
-        player_is_upper: bool,
-        initial_score: int = 0,
+        player: Player,
     ) -> None:
         self.move = move
-        self.player_is_upper = player_is_upper
-        self.score = initial_score
+        self.player = player
+        self.score = 0
         self.children = []
         self.depth = 0
-        self.state = Node.State.RUNNING
         self.state = State.RUNNING
 
     def next_depth(self, player: Player) -> None:
         """
         Compute the next depth using the minimax algorithm
         """
-        assert not self.state.is_end()
+        if self.state.is_end():
+            return
 
         self.depth += 1
 
         with PlayMove(player, self.move):
             if self.depth == 1:
-                self.initialize_children(player)
+                self.score, self.end = evaluate_position(self.player)
                 return
 
-            for child in self.children:
-                child.next_depth(player)
+            if self.depth == 2:
+                self.children = [Node(move, player) for move in player.valid_moves]
+            else:
+                for child in self.children:
+                    child.next_depth(player)
 
-    def initialize_children(self, player: Player) -> None:
+            self.score = self.evaluate_children()
+
+    def evaluate_children(self) -> int:
         """
-        Initialize the children of the current node
+        Evaluate the children of the current node
         """
 
-        self.children = [
-            Node(move, not self.player_is_upper) for move in player.valid_moves
-        ]
+        if not self.children:
+            self.state = State.DRAW
+            return 0
+
+        children = self.children
+
+        children.sort(reverse=True)
+
+        depth = self.depth
+        if depth <= 4:
+            limit = 10
+        elif depth <= 6:
+            limit = 5
+        else:
+            limit = 2
+
+        self.children = children[:limit]
+
+        return -self.children[0].score
+
+    def __gt__(self, other: Node) -> bool:
+        return self.score > other.score
+
+    def __str__(self) -> str:
+        return f"{self.move}: {self.score}"
 
 
 class LiftPiece:
@@ -408,24 +491,44 @@ class Player(Board):
         """
 
         import random
+        import time
+
+        start = time.time()
 
         self.hive = set(self.nonempty_cells)
         self._board = convert_board(self.board)
 
         if self.myMove == 0:
             if not self.hive:
-                return Move(Piece.Spider, None, (3, 6)).to_brute(self.upper)
+                return Move(Piece.Spider, None, (1, 6)).to_brute(self.upper)
 
             placement = random.choice(list(self.cells_around_hive))
             return Move(Piece.Spider, None, placement).to_brute(self.upper)
 
-        possible_moves = list(self.valid_moves)
+        if TEST:
+            possible_moves = list(self.valid_moves)
 
-        if not possible_moves:
+            if not possible_moves:
+                return []
+
+            return random.choice(possible_moves).to_brute(self.upper)
+
+        nodes = [Node(move, self) for move in self.valid_moves]
+
+        if not nodes:
             return []
 
-        return random.choice(possible_moves).to_brute(self.upper)
+        while time.time() - start < 0.95:
+            for node in nodes:
+                node.next_depth(self)
 
+        best = max(nodes)
+
+        end = time.time()
+
+        print(f"Searched to depth {best.depth} in {end - start} seconds")
+
+        return best.move.to_brute(self.upper)
 
     def moving_doesnt_break_hive(self, cell: Cell) -> bool:
         """
