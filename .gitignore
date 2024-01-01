@@ -1,5 +1,7 @@
 __pycache__
 output
+dist
 .python-version
 .ropeproject
 .*cache
+*.perf
