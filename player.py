@@ -26,12 +26,11 @@ DIRECTIONS = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)]
 T = TypeVar("T")
 
 
-def consume(iterator: Iterator[T]) -> None:
+def count(iterator: Iterator[T]) -> int:
     """
-    Consume the whole iterator
+    Count the number of elements in an iterator
     """
-
-    list(iterator)
+    return sum(1 for _ in iterator)
 
 
 def floodfill(
@@ -416,7 +415,8 @@ class Player(Board):
             queue = deque([start])
             visited: set[Cell] = set()
 
-            consume(floodfill(visited, queue, self.neighbors, lambda _: None))
+            # consume the iterator to visit all the cells in the hive
+            _ = list(floodfill(visited, queue, self.neighbors, lambda _: None))
 
             return len(visited) == len(self.hive)
 
