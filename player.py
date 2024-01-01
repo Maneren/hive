@@ -598,13 +598,11 @@ class Player(Board):
         with LiftPiece(self, ant) as piece:
             assert piece.upper() == Piece.Ant, f"{piece} at {ant} is not an Ant"
 
-            around_hive = set(self.cells_around_hive)
-
             def next_cells(cell: Cell) -> Iterator[Cell]:
                 return (
                     neighbor
                     for neighbor in self.empty_neighboring_cells(cell)
-                    if neighbor in around_hive and self.can_move_to(cell, neighbor)
+                    if self.can_move_to(cell, neighbor)
                 )
 
             move = functools.partial(Move, Piece.Ant, ant)
