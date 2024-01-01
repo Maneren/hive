@@ -809,6 +809,10 @@ class Player(Board):
         Check if a piece can move from (p,q) to (np,nq), ie. there is exactly one
         neighbor in the direction of move
         """
+
+        if not (self.is_empty(target) or can_crawl_over):
+            return False
+
         p, q = origin
         np, nq = target
 
@@ -820,10 +824,9 @@ class Player(Board):
         left = (p + lp, q + lq)
         right = (p + rp, q + rq)
 
-        def is_full(cell: Cell) -> bool:
-            return not (self.is_empty(cell) or self.in_board(cell))
-
-        left_full, right_full = map(is_full, [left, right])
+        left_full, right_full = (
+            not (self.in_board(cell) and self.is_empty(cell)) for cell in (left, right)
+        )
 
         return left_full or right_full if can_crawl_over else left_full != right_full
 
