@@ -634,9 +634,8 @@ class Player(Board):
         Checks if (p,q) is a cell owned by the player
         """
         piece = self[cell][-1]
-        is_upper = self.myColorIsUpper
 
-        return piece.isupper() == is_upper or piece.islower() != is_upper
+        return piece.isupper() == self.upper or piece.islower() != self.upper
 
     def is_empty(self, cell: Cell) -> bool:
         """
