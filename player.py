@@ -314,17 +314,6 @@ class Player(Board):
         )
 
     @property
-    def rival_pieces_on_board(self) -> Iterator[tuple[Piece, Cell]]:
-        """
-        Iterator over all rival pieces on the board. Uses self.hive directly
-        """
-        return (
-            (Piece.from_str(self[cell][-1]), cell)
-            for cell in self.hive
-            if not self.is_my_cell(cell)
-        )
-
-    @property
     def valid_placements(self) -> Iterator[Cell]:
         """
         Iterator over all valid placements. Uses self.hive transitively
@@ -583,12 +572,6 @@ class Player(Board):
             for neighbor in self.neighboring_cells(cell)
             if not self.is_empty(neighbor)
         )
-
-    def has_neighbor(self, cell: Cell) -> bool:
-        """
-        Check if the given cell has at least one neighbor
-        """
-        return any(self.neighbors(cell))
 
     def valid_steps(
         self,
