@@ -115,7 +115,7 @@ def evaluate_cell(
 
         score = table[Criteria.QUEEN_NEIGHBOR] * (c - 1)
 
-        if not player.moving_doesnt_break_hive(cell):
+        if player.moving_breaks_hive(cell):
             score += table[Criteria.QUEEN_BLOCKED]
 
     return score, State.RUNNING
@@ -406,7 +406,7 @@ class Player(Board):
         return (
             (piece, cell)
             for piece, cell in self.my_pieces_on_board
-            if self.moving_doesnt_break_hive(cell)
+            if not self.moving_breaks_hive(cell)
         )
 
     @property
@@ -530,9 +530,9 @@ class Player(Board):
 
         return best.move.to_brute(self.upper)
 
-    def moving_doesnt_break_hive(self, cell: Cell) -> bool:
+    def moving_breaks_hive(self, cell: Cell) -> bool:
         """
-        Check if moving the given piece doesn't break the hive into parts
+        Check if moving the given piece breaks the hive into parts
         """
 
         with LiftPiece(self, cell):
@@ -546,7 +546,7 @@ class Player(Board):
             # consume the iterator to visit all the cells in the hive
             _ = list(floodfill(visited, queue, self.neighbors, lambda _: None))
 
-            return len(visited) == len(self.hive)
+            return len(visited) != len(self.hive)
 
     def queens_moves(self, queen: Cell) -> Iterator[Move]:
         """
