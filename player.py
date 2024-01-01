@@ -622,6 +622,13 @@ class Player(Board):
         """
         return self[cell][-1]
 
+    def my_piece_remaining(self, piece: Piece) -> int:
+        """
+        Returns the number of my pieces of given type
+        """
+        piece_str = piece.upper() if self.myColorIsUpper else piece.lower()
+        return self.myPieces[piece_str]
+
     def is_my_cell(self, cell: Cell) -> bool:
         """
         Checks if (p,q) is a cell owned by the player
