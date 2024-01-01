@@ -50,6 +50,17 @@ class Board:
 
         image_names = ["ant", "beetle", "bee", "spider", "grasshopper"]
 
+        # create empty board as a dictionary
+        self.board = {
+            p: {q: "" for q in range(-size, size) if self.inBoard(p, q)}
+            for p in range(-(size // 2), size)
+        }
+
+        import os
+
+        if not os.path.exists("images"):
+            return
+
         self._images = {
             name: Image.open(f"images/{name}.png").resize((70, 70))
             for name in image_names
@@ -58,12 +69,6 @@ class Board:
         self._images_small = {
             name: Image.open(f"images/{name}.png").resize((20, 20))
             for name in image_names
-        }
-
-        # create empty board as a dictionary
-        self.board = {
-            p: {q: "" for q in range(-size, size) if self.inBoard(p, q)}
-            for p in range(-(size // 2), size)
         }
 
         # this is for visualization and to synchronize colors between png/js
