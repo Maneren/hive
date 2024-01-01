@@ -118,10 +118,17 @@ def evaluate_cell(
     return score, State.RUNNING
 
 
+evaluated = 0
+
+
 def evaluate_position(player: Player) -> tuple[int, State]:
     """
     Evaluate the position from the POV of the given player
     """
+
+    global evaluated
+
+    evaluated += 1
 
     score = 0
 
@@ -523,7 +530,6 @@ class Player(Board):
 
         end = time.perf_counter()
 
-        print(f"Searched to depth {best.depth} in {end - start} seconds")
         elapsed = end - start
 
         print(f"Searched to depth {depth} ({evaluated} positions) in {elapsed} seconds")
