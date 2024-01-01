@@ -15,7 +15,8 @@ from base import Board
 
 # PUT ALL YOUR IMPLEMENTATION INTO THIS FILE
 
-BoardData = dict[int, dict[int, str]]
+BoardData = dict[int, dict[int, list[str]]]
+BoardDataBrute = dict[int, dict[int, str]]
 Cell = tuple[int, int]
 Direction = tuple[int, int]
 MoveBrute = list[str, int, int, int, int] | list[str, None, None, int, int]
@@ -48,11 +49,11 @@ def floodfill(
         queue.extend(next_fn(current))
 
 
-def parse_board(string: str) -> BoardData:
+def parse_board(string: str) -> BoardDataBrute:
     """
     Parse board from string
     """
-    board: BoardData = {}
+    board: BoardDataBrute = {}
     lines = string.splitlines()
     for q, line in enumerate(lines):
         p = -(q // 2)
@@ -61,10 +62,14 @@ def parse_board(string: str) -> BoardData:
             if p not in board:
                 board[p] = {}
 
-            board[p][q] = char if char != "." else ""
             p += 1
+            board[p][q] = char if char != "." else ""
 
     return board
+
+
+def convert_board(board: BoardDataBrute) -> BoardData:
+    return {p: {q: list(board[p][q]) for q in board[p]} for p in board}
 
 
 def cells_are_neighbors(cell1: Cell, cell2: Cell) -> bool:
@@ -230,6 +235,7 @@ class Player(Board):
     unless explicitly specified otherwise in their docstrings.
     """
 
+    _board: BoardData
     hive: set[Cell]
 
     def __init__(
@@ -248,6 +254,7 @@ class Player(Board):
         super().__init__(my_is_upper, size, my_pieces, rival_pieces)
         self.playerName = player_name
         self.algorithmName = "maneren"
+        self._board = convert_board(self.board)
         self.hive = set(self.nonempty_cells)
 
     @property
@@ -393,6 +400,7 @@ class Player(Board):
         import random
 
         self.hive = set(self.nonempty_cells)
+        self._board = convert_board(self.board)
 
         if self.myMove == 0:
             if not self.hive:
@@ -626,7 +634,7 @@ class Player(Board):
         """
         Checks if (p,q) is an empty cell
         """
-        return self[cell] == ""
+        return not self[cell]
 
     def in_board(self, cell: Cell) -> bool:
         """
@@ -679,8 +687,7 @@ class Player(Board):
         """
         Remove the top-most piece at the given cell and return it
         """
-        piece = self[cell][-1]
-        self[cell] = self[cell][:-1]
+        piece = self[cell].pop()
 
         if self.is_empty(cell):
             self.hive.remove(cell)
@@ -691,7 +698,7 @@ class Player(Board):
         """
         Place the given piece at the given cell
         """
-        self[cell] += piece
+        self[cell].append(piece)
         self.hive.add(cell)
 
     def play_move(self, move: Move) -> None:
@@ -727,20 +734,20 @@ class Player(Board):
         assert removed == piece
 
     ## allows indexing the board directly using player[cell] or player[p, q]
-    def __getitem__(self, cell: Cell) -> str:
+    def __getitem__(self, cell: Cell) -> list[str]:
         p, q = cell
-        return self.board[p][q]
+        return self._board[p][q]
 
-    def __setitem__(self, cell: Cell, value: str) -> None:
+    def __setitem__(self, cell: Cell, value: str | list[str]) -> None:
         p, q = cell
-        self.board[p][q] = value
+        self._board[p][q] = value if isinstance(value, list) else list(value)
 
     def __str__(self) -> str:
         lines = []
 
         for q in range(self.size):
             row = [
-                self[p, q] or "."
+                "".join(self[p, q]) or "."
                 for p in range(-self.size, self.size)
                 if self.in_board((p, q))
             ]
