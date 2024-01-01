@@ -556,18 +556,24 @@ class Player(Board):
         Check if moving the given piece breaks the hive into parts
         """
 
-        with LiftPiece(self, cell):
-            start = next(self.neighbors(cell), None)
-            if not start:
-                return False
+        changes = 0
 
-            queue = deque([start])
-            visited: set[Cell] = set()
+        neighbors = self.neighboring_cells(cell)
 
-            # consume the iterator to visit all the cells in the hive
-            _ = list(floodfill(visited, queue, self.neighbors, lambda _: None))
+        current = self.is_empty(next(neighbors))
 
-            return len(visited) != len(self.hive)
+        for neighbor in neighbors:
+            empty = self.is_empty(neighbor)
+
+            if empty != current:
+                changes += 1
+
+                if changes == 3:
+                    break
+
+                current = empty
+
+        return changes == 3
 
     def queens_moves(self, queen: Cell) -> Iterator[Move]:
         """
