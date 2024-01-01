@@ -601,6 +601,7 @@ class Player(Board):
     def valid_steps(
         self,
         cell: Cell,
+        /,
         can_crawl_over: bool = False,
     ) -> Iterator[Cell]:
         """
@@ -609,18 +610,10 @@ class Player(Board):
         one neighbor). By default, only empty cells are returned, but optionally
         non-empty cells can be included as well.
         """
-
-        if can_crawl_over:
-            return (
-                neighbor
-                for neighbor in self.neighboring_cells(cell)
-                if self.has_neighbor(neighbor)
-            )
-
         return (
             neighbor
-            for neighbor in self.empty_neighboring_cells(cell)
-            if self.has_neighbor(neighbor) and self.can_move_to(cell, neighbor)
+            for neighbor in self.neighboring_cells(cell)
+            if self.can_move_to(cell, neighbor, can_crawl_over=can_crawl_over)
         )
 
     def top_piece_in(self, cell: Cell) -> str:
@@ -671,10 +664,16 @@ class Player(Board):
         """
         return all(self.is_my_cell(neighbor) for neighbor in self.neighbors(cell))
 
-    def can_move_to(self, origin: Cell, target: Cell) -> bool:
+    def can_move_to(
+        self,
+        origin: Cell,
+        target: Cell,
+        /,
+        can_crawl_over: bool = False,
+    ) -> bool:
         """
-        Check if a piece can move from (p,q) to (np,nq), ie. there are no other pieces
-        or board edges on the sides blocking it.
+        Check if a piece can move from (p,q) to (np,nq), ie. there is exactly one
+        neighbor in the direction of move
         """
         p, q = origin
         np, nq = target
@@ -687,9 +686,12 @@ class Player(Board):
         left = (p + lp, q + lq)
         right = (p + rp, q + rq)
 
-        return any(
-            self.in_board(cell) and self.is_empty(cell) for cell in (left, right)
-        )
+        def is_full(cell: Cell) -> bool:
+            return not (self.is_empty(cell) or self.in_board(cell))
+
+        left_full, right_full = map(is_full, [left, right])
+
+        return left_full or right_full if can_crawl_over else left_full != right_full
 
     def remove_piece_from_board(self, cell: Cell) -> str:
         """
