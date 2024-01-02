@@ -1,6 +1,6 @@
 run:
     mkdir -p output
-    python player.py
+    python runner.py 
 
 check:
     ruff check *.py
@@ -17,3 +17,4 @@ strip:
     mkdir -p dist
     python strip.py player.py dist/player.py
     python strip.py base.py dist/base.py
+    python strip.py runner.py dist/runner.py
