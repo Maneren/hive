@@ -726,14 +726,19 @@ class Player(Board):
 
             yield from map(move, stack)
 
+    def neighboring_cells_unchecked(self, cell: Cell) -> Iterator[Cell]:
+        """
+        Iterator over all cells neighboring (p,q), without checking
+        if they are in the board
+        """
+        p, q = cell
+        return ((p + dp, q + dq) for dp, dq in DIRECTIONS)
+
     def neighboring_cells(self, cell: Cell) -> Iterator[Cell]:
         """
         Iterator over all cells neighboring (p,q)
         """
-        p, q = cell
-        return (
-            (p + dp, q + dq) for dp, dq in DIRECTIONS if self.in_board((p + dp, q + dq))
-        )
+        return filter(self.in_board, self.neighboring_cells_unchecked(cell))
 
     def empty_neighboring_cells(self, cell: Cell) -> Iterator[Cell]:
         """
@@ -839,7 +844,8 @@ class Player(Board):
         neighbor in the direction of move
         """
 
-        if not (self.is_empty(target) or can_crawl_over):
+        # if target is not empty and can't crawl over, can't move
+        if not self.is_empty(target) and not can_crawl_over:
             return False
 
         p, q = origin
@@ -853,11 +859,19 @@ class Player(Board):
         left = (p + lp, q + lq)
         right = (p + rp, q + rq)
 
-        left_full, right_full = (
-            not (self.in_board(cell) and self.is_empty(cell)) for cell in (left, right)
+        # line by line:
+        # left is part of the hive or
+        # right is part of the hive
+        # if can crawl over else
+        # not at the edge of board and
+        # left or right is part of the hive and the other one is empty
+        return (
+            (self.in_board(left) and not self.is_empty(left))
+            or (self.in_board(right) and not self.is_empty(right))
+            if can_crawl_over
+            else (self.in_board(left) and self.in_board(right))
+            and self.is_empty(left) != self.is_empty(right)
         )
-
-        return left_full or right_full if can_crawl_over else left_full != right_full
 
     def remove_piece_from_board(self, cell: Cell) -> str:
         """
