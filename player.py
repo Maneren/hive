@@ -526,7 +526,7 @@ class Player(Board):
 
         if self.myMove == 0:
             if not self.hive:
-                return Move(Piece.Spider, None, (1, 6)).to_brute(self.upper)
+                return Move(Piece.Spider, None, (3, 6)).to_brute(self.upper)
 
             placement = random.choice(list(self.cells_around_hive))
             return Move(Piece.Spider, None, placement).to_brute(self.upper)
