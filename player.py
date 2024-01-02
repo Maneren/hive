@@ -70,15 +70,29 @@ def convert_board(board: BoardDataBrute) -> BoardData:
     return {p: {q: list(board[p][q]) for q in board[p]} for p in board}
 
 
+def is_blocking_rival_piece(player: Player, cell: Cell, *, upper: bool) -> bool:
+    """
+    Check if the piece prevents rival's piece from moving
+    """
+    counter = 0
+
+    for neighbor in player.neighbors(cell):
+        if player.top_piece_in(neighbor).isupper() != upper:
+            counter += 1
+        else:
+            return False
+
+    return counter == 1
+
+
 class Criteria(IntEnum):
     BASE = 0
-    ANT_BLOCKING = 1
+    GENERIC_BLOCKING = 1
     BEETLE_BLOCKING = 2
     BEETLE_BLOCKING_QUEEN = 3
     QUEEN_NEIGHBOR = 4
     QUEEN_SURROUNDED = 5
     QUEEN_BLOCKED = 6
-    SPIDER_BLOCKING = 7
 
 
 EVAL_TABLE_MY = [1, 600, 200, 1000, -400, -1000000, -400, 200]
@@ -88,22 +102,26 @@ EVAL_TABLE_RIVAL = [-1, -500, -200, -1200, 400, 1000000, 400, -100]
 def evaluate_cell(
     player: Player,
     cell: Cell,
+    *,
+    upper: bool,
 ) -> tuple[int, State]:
-    my = player.is_my_cell(cell)
-    piece = Piece.from_str(player.top_piece_in(cell))
+    top_piece = player.top_piece_in(cell)
+    my = top_piece.isupper() == upper
+    piece = Piece.from_str(top_piece)
 
     table = EVAL_TABLE_MY if my else EVAL_TABLE_RIVAL
 
     score = table[Criteria.BASE]
 
-    if piece == Piece.Ant:
-        if count(player.neighbors(cell)) == 1:
-            score = table[Criteria.ANT_BLOCKING]
-    elif piece == Piece.Beetle:
+    if piece != Piece.Queen and is_blocking_rival_piece(player, cell, upper=upper):
+        score = table[Criteria.GENERIC_BLOCKING]
+
+    if piece == Piece.Beetle:
         if len(player[cell]) == 2:
-            score = table[Criteria.BEETLE_BLOCKING]
+            score += table[Criteria.BEETLE_BLOCKING]
             if player[cell][0].upper() == Piece.Queen:
                 score += table[Criteria.BEETLE_BLOCKING_QUEEN]
+
     elif piece == Piece.Queen:
         c = count(player.neighbors(cell))
 
@@ -121,7 +139,7 @@ def evaluate_cell(
 evaluated = 0
 
 
-def evaluate_position(player: Player) -> tuple[int, State]:
+def evaluate_position(player: Player, *, upper: bool) -> tuple[int, State]:
     """
     Evaluate the position from the POV of the given player
     """
@@ -133,7 +151,7 @@ def evaluate_position(player: Player) -> tuple[int, State]:
     score = 0
 
     for cell in player.hive:
-        piece_score, game_state = evaluate_cell(player, cell)
+        piece_score, game_state = evaluate_cell(player, cell, upper=upper)
         if game_state:
             return piece_score, game_state
         score += piece_score
@@ -229,7 +247,7 @@ class Node:
         self.depth = 0
         self.state = State.RUNNING
 
-    def next_depth(self, player: Player) -> None:
+    def next_depth(self, player: Player, *, upper: bool = True) -> None:
         """
         Compute the next depth using the minimax algorithm
         """
@@ -240,14 +258,14 @@ class Node:
 
         with PlayMove(player, self.move):
             if self.depth == 1:
-                self.score, self.end = evaluate_position(self.player)
+                self.score, self.end = evaluate_position(self.player, upper=upper)
                 return
 
             if self.depth == 2:
                 self.children = [Node(move, player) for move in player.valid_moves]
             else:
                 for child in self.children:
-                    child.next_depth(player)
+                    child.next_depth(player, upper=not upper)
 
             self.score = self.evaluate_children()
 
