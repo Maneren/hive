@@ -471,7 +471,7 @@ class Player(Board):
 
         is_my_queen_on_board = self.my_piece_remaining(Piece.Queen) == 0
 
-        if not is_my_queen_on_board and self.myMove == 4:
+        if not is_my_queen_on_board and self.myMove == 3:
             return map(
                 functools.partial(Move, Piece.Queen, None),
                 self.valid_placements,
@@ -517,8 +517,8 @@ class Player(Board):
 
         start = time.perf_counter()
 
-        self.hive = set(self.nonempty_cells)
         self._board = convert_board(self.board)
+        self.hive = set(self.nonempty_cells)
 
         if self.myMove == 0:
             if not self.hive:
