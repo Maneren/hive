@@ -476,15 +476,13 @@ class Player(Board):
             for move in mapping[piece](cell)
         )
 
-        is_my_queen_on_board = self.my_piece_remaining(Piece.Queen) == 0
-
-        if not is_my_queen_on_board and self.myMove == 3:
+        if self.my_piece_remaining(Piece.Queen) > 0 and self.myMove == 3:
             return map(
                 functools.partial(Move, Piece.Queen, None),
                 self.valid_placements,
             )
 
-        return chain(place_iter, move_iter) if is_my_queen_on_board else place_iter
+        return chain(place_iter, move_iter) if self.myMove >= 4 else place_iter
 
     @property
     def cells_around_hive(self) -> set[Cell]:
