@@ -788,7 +788,7 @@ class Player(Board):
         """
         Returns the number of my pieces of given type
         """
-        piece_str = piece.upper() if self.myColorIsUpper else piece.lower()
+        piece_str = piece.upper() if self.upper else piece.lower()
         return self.myPieces[piece_str]
 
     def is_my_cell(self, cell: Cell) -> bool:
