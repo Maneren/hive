@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from typing import Any
+
 import math
 
-from PIL import Image, ImageDraw
 
 # DO NOT MODIFY THIS FILE
 # THIS FILE IS NOT UPLOADED TO BRUTE (all changes in it will be ignored by Brute)
@@ -10,6 +11,15 @@ from PIL import Image, ImageDraw
 BoardData = dict[int, dict[int, str]]
 Tile = tuple[int, int]
 PiecesDict = dict[str, int]
+
+
+def images(size: int) -> dict[str, Any]:
+    from PIL import Image
+
+    return {
+        name: Image.open(f"images/{name}.png").resize((size, size))
+        for name in ["beetle", "spider", "grasshopper", "bee", "ant"]
+    }
 
 
 class Board:
@@ -48,28 +58,14 @@ class Board:
 
         # the rest of the code is just for drawing to png
 
-        image_names = ["ant", "beetle", "bee", "spider", "grasshopper"]
-
         # create empty board as a dictionary
         self.board = {
             p: {q: "" for q in range(-size, size) if self.inBoard(p, q)}
             for p in range(-(size // 2), size)
         }
 
-        import os
-
-        if not os.path.exists("images"):
-            return
-
-        self._images = {
-            name: Image.open(f"images/{name}.png").resize((70, 70))
-            for name in image_names
-        }
-
-        self._images_small = {
-            name: Image.open(f"images/{name}.png").resize((20, 20))
-            for name in image_names
-        }
+        self._images: dict[str, Any] | None = None
+        self._images_small: dict[str, Any] | None = None
 
         # this is for visualization and to synchronize colors between png/js
         self._colors = {
@@ -101,7 +97,7 @@ class Board:
         qq = -p
         return pp, qq
 
-    def letter2image(self, last_letter: str) -> tuple[Image.Image, Image.Image]:
+    def letter2image(self, last_letter: str) -> tuple[Any, Any]:
         last_letter = last_letter.lower()
 
         image_names_map = {
@@ -117,6 +113,12 @@ class Board:
 
         image_name = image_names_map[last_letter]
 
+        if self._images is None:
+            self._images = images(70)
+
+        if self._images_small is None:
+            self._images_small = images(20)
+
         return self._images[image_name], self._images_small[image_name]
 
     def saveImage(self, filename, HL={}, LINES=[], HLA={}):
@@ -130,6 +132,8 @@ class Board:
         LINES = [ line1, line2 ,.... ], where each line is [#RRGGBB, p1, q1, p2, q2]
         - will draw line from cell (p1,q1) to cell (p2,q2)
         """
+
+        from PIL import Image, ImageDraw
 
         def pq2hexa(p, q):
             cx = cellRadius * (math.sqrt(3) * p + math.sqrt(3) / 2 * q) + cellRadius
