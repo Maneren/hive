@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import time
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum, IntEnum
@@ -247,27 +248,33 @@ class Node:
         self.depth = 0
         self.state = State.RUNNING
 
-    def next_depth(self, player: Player, *, upper: bool = True) -> None:
+    def next_depth(self, player: Player, end: float, *, upper: bool) -> bool:
         """
         Compute the next depth using the minimax algorithm
         """
         if self.state.is_end():
-            return
+            return True
+
+        if time.perf_counter() > end:
+            return False
 
         self.depth += 1
 
         with PlayMove(player, self.move):
             if self.depth == 1:
                 self.score, self.end = evaluate_position(self.player, upper=upper)
-                return
+                return True
 
             if self.depth == 2:
                 self.children = [Node(move, player) for move in player.valid_moves]
             else:
                 for child in self.children:
-                    child.next_depth(player, upper=not upper)
+                    if not child.next_depth(player, end, upper=not upper):
+                        return False
 
             self.score = self.evaluate_children()
+
+        return True
 
     def evaluate_children(self) -> int:
         """
@@ -513,9 +520,8 @@ class Player(Board):
         """
 
         import random
-        import time
 
-        start = time.perf_counter()
+        end = time.perf_counter() + 0.95
 
         self._board = convert_board(self.board)
         self.hive = set(self.nonempty_cells)
@@ -542,11 +548,15 @@ class Player(Board):
 
         depth = 0
 
-        while time.perf_counter() - start < 0.9:
+        best = nodes[0]
+
+        while True:
             depth += 1
 
             for node in nodes:
-                node.next_depth(self)
+                if not node.next_depth(self, end, upper=self.upper):
+                    print(f"Searched to depth {depth} ({evaluated} pos): {best.score}")
+                    return best.move.to_brute(self.upper)
 
             if depth <= 2:
                 limit = len(nodes)
@@ -559,15 +569,7 @@ class Player(Board):
                 nodes.sort(reverse=True)
                 nodes = nodes[:limit]
 
-        best = max(nodes)
-
-        end = time.perf_counter()
-
-        elapsed = end - start
-
-        print(f"Searched to depth {depth} ({evaluated} positions) in {elapsed} seconds")
-
-        return best.move.to_brute(self.upper)
+            best = max(nodes)
 
     def moving_breaks_hive(self, cell: Cell) -> bool:
         """
