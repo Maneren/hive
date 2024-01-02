@@ -104,23 +104,27 @@ def evaluate_cell(
     player: Player,
     cell: Cell,
     *,
-    upper: bool,
+    player_is_upper: bool,
 ) -> tuple[int, State]:
     top_piece = player.top_piece_in(cell)
-    my = top_piece.isupper() == upper
+    piece_is_upper = top_piece.isupper()
+    my = piece_is_upper == player_is_upper
     piece = Piece.from_str(top_piece)
 
     table = EVAL_TABLE_MY if my else EVAL_TABLE_RIVAL
 
     score = table[Criteria.BASE]
 
-    if piece != Piece.Queen and is_blocking_rival_piece(player, cell, upper=upper):
+    if piece != Piece.Queen and is_blocking_rival_piece(
+        player, cell, upper=piece_is_upper
+    ):
         score = table[Criteria.GENERIC_BLOCKING]
 
     if piece == Piece.Beetle:
-        if len(player[cell]) == 2:
+        pieces = player[cell]
+        if len(pieces) >= 2 and pieces[-2].isupper() != piece_is_upper:
             score += table[Criteria.BEETLE_BLOCKING]
-            if player[cell][0].upper() == Piece.Queen:
+            if pieces[-2].upper() == Piece.Queen:
                 score += table[Criteria.BEETLE_BLOCKING_QUEEN]
 
     elif piece == Piece.Queen:
@@ -152,7 +156,7 @@ def evaluate_position(player: Player, *, upper: bool) -> tuple[int, State]:
     score = 0
 
     for cell in player.hive:
-        piece_score, game_state = evaluate_cell(player, cell, upper=upper)
+        piece_score, game_state = evaluate_cell(player, cell, player_is_upper=upper)
         if game_state:
             return piece_score, game_state
         score += piece_score
