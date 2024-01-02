@@ -1,8 +1,10 @@
-from player import MoveBrute, Player, PlayMove, convert_board, parse_board
+from typing import Any
+
+from player import Player, PlayMove, convert_board, parse_board
 
 
 def update_players(
-    move: MoveBrute,
+    move: Any,
     active_player: Player,
     passive_player: Player,
 ) -> None:
