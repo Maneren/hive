@@ -747,7 +747,7 @@ class Player(Board):
     def valid_steps(
         self,
         cell: Cell,
-        /,
+        *,
         can_crawl_over: bool = False,
     ) -> Iterator[Cell]:
         """
@@ -820,7 +820,7 @@ class Player(Board):
         self,
         origin: Cell,
         target: Cell,
-        /,
+        *,
         can_crawl_over: bool = False,
     ) -> bool:
         """
