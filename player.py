@@ -75,15 +75,18 @@ def is_blocking_rival_piece(player: Player, cell: Cell, *, upper: bool) -> bool:
     """
     Check if the piece prevents rival's piece from moving
     """
-    counter = 0
+    seen = False
 
     for neighbor in player.neighbors(cell):
-        if player.top_piece_in(neighbor).isupper() != upper:
-            counter += 1
-        else:
+        if player.top_piece_in(neighbor).isupper() == upper:
             return False
 
-    return counter == 1
+        if seen:
+            return False
+
+        seen = True
+
+    return seen
 
 
 class Criteria(IntEnum):
