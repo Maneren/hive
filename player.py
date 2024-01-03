@@ -33,7 +33,7 @@ def length_of_iter[T](iterator: Iterator[T]) -> int:
     """
     Count the number of elements in an iterator
     """
-    return sum(1 for _ in iterator)
+    return len(tuple(iterator))
 
 
 def floodfill[T](
