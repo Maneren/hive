@@ -665,7 +665,7 @@ class Player(Board):
         with lift_piece(self, queen) as piece:
             assert piece.upper() == Piece.Queen, f"{piece} at {queen} is not a Queen"
             move = functools.partial(Move, Piece.Queen, queen)
-            yield from map(move, self.valid_steps(queen))
+            yield from map(move, self.valid_steps(queen, can_leave_hive=True))
 
     def ants_moves(self, ant: Cell) -> Iterator[Move]:
         """
@@ -702,7 +702,9 @@ class Player(Board):
 
             move = functools.partial(Move, Piece.Beetle, beetle)
 
-            yield from map(move, self.valid_steps(beetle, can_crawl_over=True))
+            yield from map(
+                move, self.valid_steps(beetle, can_crawl_over=True, can_leave_hive=True)
+            )
 
     def grasshoppers_moves(self, grasshopper: Cell) -> Iterator[Move]:
         """
@@ -802,6 +804,7 @@ class Player(Board):
         cell: Cell,
         *,
         can_crawl_over: bool = False,
+        can_leave_hive: bool = False,
     ) -> Iterator[Cell]:
         """
         Return an iterator over all cells reachable from (p,q).
@@ -811,7 +814,12 @@ class Player(Board):
         return (
             neighbor
             for neighbor in self.neighboring_cells(cell)
-            if self.can_move_to(cell, neighbor, can_crawl_over=can_crawl_over)
+            if self.can_move_to(
+                cell,
+                neighbor,
+                can_crawl_over=can_crawl_over,
+                can_leave_hive=can_leave_hive,
+            )
         )
 
     def top_piece_in(self, cell: Cell) -> str:
@@ -858,6 +866,7 @@ class Player(Board):
         target: Cell,
         *,
         can_crawl_over: bool = False,
+        can_leave_hive: bool = False,
     ) -> bool:
         """
         Check if a piece can move from (p,q) to (np,nq).
@@ -889,9 +898,10 @@ class Player(Board):
         return (
             (self.in_board(left) and not self.is_empty(left))
             or (self.in_board(right) and not self.is_empty(right))
+            or can_leave_hive
             if can_crawl_over
             else (self.in_board(left) and self.in_board(right))
-            and self.is_empty(left) != self.is_empty(right)
+            and (self.is_empty(left) != self.is_empty(right) or can_leave_hive)
         )
 
     def remove_piece_from_board(self, cell: Cell) -> str:
