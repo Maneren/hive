@@ -5,7 +5,7 @@ import time
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum, IntEnum
-from itertools import chain
+from itertools import chain, count, islice
 from typing import Any, Callable, Iterator, TypeVar
 
 from base import Board
@@ -548,18 +548,17 @@ class Player(Board):
 
         nodes = [Node(move, self) for move in self.valid_moves]
 
-        if not nodes:
-            return []
+        return self.minimax(nodes, end) if nodes else []
 
-        depth = 0
-
+    def minimax(self, nodes: list[Node], end: float) -> MoveBrute:
         best = nodes[0]
 
-        while True:
-            depth += 1
+        for depth in count():
+            if time.perf_counter() > end:
+                break
 
             for node in nodes:
-                if not node.next_depth(self, end, upper=self.upper):
+                if not node.next_depth(self, end, target_player=self.upper):
                     print(f"Searched to depth {depth} ({evaluated} pos): {best.score}")
                     return best.move.to_brute(self.upper)
 
@@ -570,11 +569,28 @@ class Player(Board):
             else:
                 limit = 2
 
-            if limit < len(nodes):
-                nodes.sort(reverse=True)
-                nodes = nodes[:limit]
+            win_moves = (node for node in nodes if node.state == State.WIN)
+
+            win = next(win_moves, None)
+
+            if win:
+                return win.move.to_brute(self.upper)
+
+            nodes.sort(reverse=True)
+
+            nodes = list(
+                islice((node for node in nodes if node.state != State.LOSS), limit),
+            )
+
+            if not nodes:
+                break
 
             best = max(nodes)
+            nodes_str = "\n".join(map(str, nodes))
+            print(f"Nodes at depth {depth}:\n{nodes_str}")
+
+        print(f"Searched to depth {depth} ({evaluated} pos): {best.score}")
+        return best.move.to_brute(self.upper)
 
     def moving_breaks_hive(self, cell: Cell) -> bool:
         """
