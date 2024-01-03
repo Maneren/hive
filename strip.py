@@ -22,16 +22,14 @@ class TypeHintRemover(ast.NodeTransformer):
         if not node.body:
             return node
 
-        first = node.body[0]
-        if (
-            isinstance(first, ast.Expr)
-            and hasattr(first, "value")
-            and isinstance(
-                first.value,
-                ast.Constant,
+        node.body = [
+            statement
+            for statement in node.body
+            if not (
+                isinstance(statement, ast.Expr)
+                and isinstance(statement.value, ast.Constant)
             )
-        ):
-            node.body.pop(0)
+        ]
 
         return node
 
@@ -43,20 +41,18 @@ class TypeHintRemover(ast.NodeTransformer):
 
     # remove type annotations, docstrings from classes and handle dataclasses
     def visit_ClassDef(self, node: ast.ClassDef) -> ast.AST | None:
-        # remove all docstrings
         if not node.body:
             return node
 
-        first = node.body[0]
-        if (
-            isinstance(first, ast.Expr)
-            and hasattr(first, "value")
-            and isinstance(
-                first.value,
-                ast.Constant,
+        # remove all docstrings
+        node.body = [
+            statement
+            for statement in node.body
+            if not (
+                isinstance(statement, ast.Expr)
+                and isinstance(statement.value, ast.Constant)
             )
-        ):
-            node.body.pop(0)
+        ]
 
         # remove and collect all class attributes
         class_vars = []
