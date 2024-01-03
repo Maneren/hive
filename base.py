@@ -266,8 +266,8 @@ class Board:
     def isMyColor(self, p: int, q: int, board: BoardData) -> bool:
         """assuming board[p][q] is not empty"""
         return (
-            board[p][q].isupper() == self.myColorIsUpper
-            or board[p][q].islower() != self.myColorIsUpper
+            board[p][q][-1].isupper() == self.myColorIsUpper
+            or board[p][q][-1].islower() != self.myColorIsUpper
         )
 
     def isEmpty(self, p: int, q: int, board: dict[int, dict[int, str]]) -> bool:
