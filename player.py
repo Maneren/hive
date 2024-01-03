@@ -218,6 +218,10 @@ class Piece(str, Enum):
         """Return the string representation in upper case."""
         return self.value
 
+    def lower(self) -> str:
+        """Return the string representation in lower case."""
+        return self.value.lower()
+
 
 @dataclass
 class Move:
