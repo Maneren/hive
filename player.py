@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum, IntEnum
 from itertools import chain, count, islice
+from random import choice
 from typing import Callable, Iterator
 
 from base import Board
@@ -562,8 +563,6 @@ class Player(Board):
         *Note: the API has to stay this way to be compatible with Brute*
         """
 
-        import random
-
         end = time.perf_counter() + 0.95
 
         self._board = convert_board(self.board)
@@ -573,7 +572,7 @@ class Player(Board):
             if not self.hive:
                 return Move(Piece.Spider, None, (3, 6)).to_brute(self.upper)
 
-            placement = random.choice(list(self.cells_around_hive))
+            placement = choice(list(self.cells_around_hive))
             return Move(Piece.Spider, None, placement).to_brute(self.upper)
 
         if TEST:
@@ -582,7 +581,7 @@ class Player(Board):
             if not possible_moves:
                 return []
 
-            return random.choice(possible_moves).to_brute(self.upper)
+            return choice(possible_moves).to_brute(self.upper) if possible_moves else []
 
         nodes = [Node(move, self) for move in self.valid_moves]
 
