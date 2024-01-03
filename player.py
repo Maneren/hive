@@ -726,21 +726,24 @@ class Player(Board):
 
             # for each direction
             for dp, dq in DIRECTIONS:
+                # start at grasshopper's position
+                current_cell = grasshopper
                 skipped = False
 
                 # move in that direction until edge of board
                 while True:
-                    p, q = grasshopper
-                    grasshopper = (p + dp, q + dq)
+                    p, q = current_cell
+                    current_cell = (p + dp, q + dq)
 
-                    if not self.in_board(grasshopper):
+                    if not self.in_board(current_cell):
                         break
 
-                    # if tile is empty and something was skipped, yield move
+                    # if tile is empty and
+                    # if something was skipped, yield move
                     # else try different direction
-                    if self.is_empty(grasshopper):
+                    if self.is_empty(current_cell):
                         if skipped:
-                            yield move(grasshopper)
+                            yield move(current_cell)
 
                         break
 
