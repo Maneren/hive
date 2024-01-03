@@ -3,10 +3,11 @@ from __future__ import annotations
 import functools
 import time
 from collections import deque
+from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum, IntEnum
 from itertools import chain, count, islice
-from typing import Any, Callable, Iterator, TypeVar
+from typing import Callable, Iterator, TypeVar
 
 from base import Board
 
@@ -322,7 +323,7 @@ class Node:
 
         self.depth += 1
 
-        with PlayMove(player, self.move):
+        with play_move(player, self.move):
             if self.depth == 1:
                 self.score, self.end = evaluate_position(
                     self.player,
@@ -378,45 +379,21 @@ class Node:
         return f"{self.move}: {self.score}"
 
 
-class LiftPiece:
-    """
-    Lifts a piece from the board for the duration of the context
-    """
-
-    player: Player
-    cell: Cell
-
-    piece: str
-
-    def __init__(self, player: Player, cell: Cell) -> None:
-        self.player = player
-        self.cell = cell
-
-    def __enter__(self) -> str:
-        self.piece = self.player.remove_piece_from_board(self.cell)
-        return self.piece
-
-    def __exit__(self, *args: Any) -> None:
-        self.player.add_piece_to_board(self.cell, self.piece)
+@contextmanager
+def lift_piece(player: Player, cell: Cell) -> Iterator[str]:
+    """Lifts a piece from the board for the duration of the context"""
+    # ^ single line docstrings should fit on one line, as per PEP 257
+    piece = player.remove_piece_from_board(cell)
+    yield piece
+    player.add_piece_to_board(cell, piece)
 
 
-class PlayMove:
-    """
-    Plays a move for the duration of the context
-    """
-
-    player: Player
-    move: Move
-
-    def __init__(self, player: Player, move: Move) -> None:
-        self.player = player
-        self.move = move
-
-    def __enter__(self) -> None:
-        self.player.play_move(self.move)
-
-    def __exit__(self, *args: Any) -> None:
-        self.player.reverse_move(self.move)
+@contextmanager
+def play_move(player: Player, move: Move) -> Iterator[None]:
+    """Plays a move for the duration of the context"""
+    player.play_move(move)
+    yield
+    player.reverse_move(move)
 
 
 class Player(Board):
@@ -686,7 +663,7 @@ class Player(Board):
 
         visited: set[Cell] = set()
 
-        with LiftPiece(self, cell):
+        with lift_piece(self, cell):
             _ = list(floodfill(visited, deque([start]), self.neighbors, lambda _: None))
             return visited != self.hive
 
@@ -697,7 +674,7 @@ class Player(Board):
         Queen can move one step in any direction.
         """
 
-        with LiftPiece(self, queen) as piece:
+        with lift_piece(self, queen) as piece:
             assert piece.upper() == Piece.Queen, f"{piece} at {queen} is not a Queen"
             move = functools.partial(Move, Piece.Queen, queen)
             yield from map(move, self.valid_steps(queen))
@@ -710,7 +687,7 @@ class Player(Board):
         to the hive.
         """
 
-        with LiftPiece(self, ant) as piece:
+        with lift_piece(self, ant) as piece:
             assert piece.upper() == Piece.Ant, f"{piece} at {ant} is not an Ant"
 
             def next_cells(cell: Cell) -> Iterator[Cell]:
@@ -734,7 +711,7 @@ class Player(Board):
         on top of other pieces.
         """
 
-        with LiftPiece(self, beetle) as piece:
+        with lift_piece(self, beetle) as piece:
             assert piece.upper() == Piece.Beetle, f"{piece} at {beetle} is not a Beetle"
 
             move = functools.partial(Move, Piece.Beetle, beetle)
@@ -749,7 +726,7 @@ class Player(Board):
         jump over at least one other piece.
         """
 
-        with LiftPiece(self, grasshopper) as piece:
+        with lift_piece(self, grasshopper) as piece:
             assert (
                 piece.upper() == Piece.Grasshopper
             ), f"{piece} at {grasshopper} is not a Grasshopper"
@@ -788,7 +765,7 @@ class Player(Board):
         to the hive.
         """
 
-        with LiftPiece(self, spider) as piece:
+        with lift_piece(self, spider) as piece:
             assert piece.upper() == Piece.Spider, f"{piece} at {spider} is not a Spider"
 
             move = functools.partial(Move, Piece.Spider, spider)
