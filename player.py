@@ -590,6 +590,7 @@ class Player(Board):
     def minimax(self, nodes: list[Node], end: float) -> MoveBrute:
         best = nodes[0]
 
+        depth = 0
         for depth in count():
             if time.perf_counter() > end:
                 break
