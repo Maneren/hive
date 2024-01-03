@@ -1,6 +1,6 @@
 from typing import Any
 
-from player import Player, PlayMove, convert_board, parse_board
+from player import Player, convert_board, parse_board, play_move
 
 
 def update_players(
@@ -8,9 +8,7 @@ def update_players(
     active_player: Player,
     passive_player: Player,
 ) -> None:
-    """write move made by activePlayer player
-    this method assumes that all moves are correct, no checking is made
-    """
+    """Write move made by `active_player` player."""
     if not move:
         return
 
@@ -129,7 +127,7 @@ def test_position() -> None:
 
     for i, move in enumerate(list(p.valid_moves)):
         print(move)
-        with PlayMove(p, move):
+        with play_move(p, move):
             filename = f"output/move-{i:03d}.png"
             p.saveImage(filename)
 
@@ -137,6 +135,18 @@ def test_position() -> None:
 
     move_brute = p.move()
     print("P returned", move_brute)
+
+    # print("//////////")
+
+    # from michal import Player as MPlayer
+    #
+    # mp = MPlayer("michal", False, board_size, small_figures, big_figures)
+    # mp.board = p.board
+    #
+    # for move in mp.allMyMoves(5):
+    #     mm = move.moves
+    #     for m in mm:
+    #         print(Move(move.name, (move.p, move.q) if move.p is not None else None, m))
 
 
 if __name__ == "__main__":
