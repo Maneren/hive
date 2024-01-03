@@ -5,8 +5,7 @@ import pathlib
 import sys
 
 if len(sys.argv) < 2:
-    print(f"Usage: {sys.argv[0]} <input file> [<output file>]")
-    sys.exit(1)
+    sys.exit(f"Usage: {sys.argv[0]} <input file> [<output file>]")
 
 input_file_path = sys.argv[1]
 
@@ -32,14 +31,13 @@ class TypeHintRemover(ast.NodeTransformer):
                 ast.Constant,
             )
         ):
-            node.body = node.body[1:]
+            node.body.pop(0)
 
         return node
 
     # remove type annotations from args
     def visit_arg(self, node: ast.arg) -> ast.AST | None:
         self.generic_visit(node)
-
         node.annotation = None
         return node
 
@@ -58,7 +56,7 @@ class TypeHintRemover(ast.NodeTransformer):
                 ast.Constant,
             )
         ):
-            node.body = node.body[1:]
+            node.body.pop(0)
 
         # remove and collect all class attributes
         class_vars = []
