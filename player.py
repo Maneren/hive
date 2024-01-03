@@ -59,9 +59,7 @@ def parse_board(string: str) -> BoardDataBrute:
     lines = string.splitlines()
     for q, line in enumerate(lines):
         for p, char in enumerate(line.split(), start=-(q // 2)):
-            if p not in board:
-                board[p] = {}
-
+            board.setdefault(p, {})
             board[p][q] = char if char != "." else ""
 
     return board
