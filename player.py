@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum, IntEnum
 from itertools import chain, count, islice
-from typing import Callable, Iterator, TypeVar
+from typing import Callable, Iterator
 
 from base import Board
 
@@ -19,29 +19,27 @@ TEST = False
 
 # PUT ALL YOUR IMPLEMENTATION INTO THIS FILE
 
-BoardData = dict[int, dict[int, list[str]]]
-BoardDataBrute = dict[int, dict[int, str]]
-Cell = tuple[int, int]
-Direction = tuple[int, int]
-MoveBrute = list[str, int, int, int, int] | list[str, None, None, int, int]
+type BoardData = dict[int, dict[int, list[str]]]
+type BoardDataBrute = dict[int, dict[int, str]]
+type Cell = tuple[int, int]
+type Direction = tuple[int, int]
+type MoveBrute = list[str, int, int, int, int] | list[str, None, None, int, int]
 
 DIRECTIONS = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)]
 
-T = TypeVar("T")
 
-
-def length_of_iter(iterator: Iterator[T]) -> int:
+def length_of_iter[T](iterator: Iterator[T]) -> int:
     """
     Count the number of elements in an iterator
     """
     return sum(1 for _ in iterator)
 
 
-def floodfill(
+def floodfill[T](
     visited: set[Cell],
     queue: deque[Cell],
     next_fn: Callable[[Cell], Iterator[Cell]],
-    map_fn: Callable[[Cell], T],
+    map_fn: Callable[[Cell], T] = lambda x: x,
 ) -> Iterator[T]:
     while queue:
         current = queue.popleft()
