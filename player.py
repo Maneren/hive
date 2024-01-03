@@ -29,7 +29,7 @@ DIRECTIONS = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)]
 T = TypeVar("T")
 
 
-def count(iterator: Iterator[T]) -> int:
+def length_of_iter(iterator: Iterator[T]) -> int:
     """
     Count the number of elements in an iterator
     """
@@ -131,7 +131,7 @@ def evaluate_cell(
                 score += table[Criteria.BEETLE_BLOCKING_QUEEN]
 
     elif piece == Piece.Queen:
-        c = count(player.neighbors(cell))
+        c = length_of_iter(player.neighbors(cell))
 
         if c == 6:
             return table[Criteria.QUEEN_SURROUNDED], State.LOSS if my else State.WIN
