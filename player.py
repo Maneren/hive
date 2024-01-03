@@ -104,7 +104,7 @@ class Criteria(IntEnum):
     BASE = 0
     GENERIC_BLOCKING = 1
     BEETLE_BLOCKING = 2
-    BEETLE_BLOCKING_QUEEN = 3
+    BEETLE_BLOCKING_QUEEN_BONUS = 3
     QUEEN_NEIGHBOR = 4
     QUEEN_SURROUNDED = 5
     QUEEN_BLOCKED = 6
@@ -144,10 +144,16 @@ def evaluate_cell(
 
     if piece == Piece.Beetle:
         pieces = player[cell]
-        if len(pieces) >= 2 and pieces[-2].isupper() != piece_is_upper:
-            score += table[Criteria.BEETLE_BLOCKING]
-            if pieces[-2].upper() == Piece.Queen:
-                score += table[Criteria.BEETLE_BLOCKING_QUEEN]
+        if len(pieces) >= 2:
+            second_piece = pieces[-2]
+
+            if second_piece.isupper() != piece_is_upper:
+                score += table[Criteria.BEETLE_BLOCKING]
+
+                if second_piece.upper() == Piece.Queen:
+                    score += table[Criteria.BEETLE_BLOCKING_QUEEN_BONUS]
+            else:
+                score -= table[Criteria.GENERIC_BLOCKING]
 
     elif piece == Piece.Queen:
         c = length_of_iter(player.neighbors(cell))
@@ -257,6 +263,18 @@ class State(IntEnum):
         Checks if the represents a final state
         """
         return self > 0
+
+    def inverse(self) -> State:  # sourcery skip: assign-if-exp, reintroduce-else
+        """
+        Returns the inverse state - WIN -> LOSS, LOSS -> WIN. Every other
+        state is unchanged.
+        """
+        if self == State.WIN:
+            return State.LOSS
+        if self == State.LOSS:
+            return State.WIN
+
+        return self
 
 
 class Node:
