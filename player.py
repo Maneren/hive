@@ -71,14 +71,14 @@ def convert_board(board: BoardDataBrute) -> BoardData:
     return {p: {q: list(board[p][q]) for q in board[p]} for p in board}
 
 
-def is_blocking_rival_piece(player: Player, cell: Cell, *, upper: bool) -> bool:
+def is_blocking_rival_piece(player: Player, cell: Cell, *, target_player: bool) -> bool:
     """
     Check if the piece prevents rival's piece from moving
     """
     seen = False
 
     for neighbor in player.neighbors(cell):
-        if player.top_piece_in(neighbor).isupper() == upper:
+        if player.top_piece_in(neighbor).isupper() == target_player:
             return False
 
         if seen:
@@ -107,11 +107,11 @@ def evaluate_cell(
     player: Player,
     cell: Cell,
     *,
-    player_is_upper: bool,
+    target_player: bool,
 ) -> tuple[int, State]:
     top_piece = player.top_piece_in(cell)
     piece_is_upper = top_piece.isupper()
-    my = piece_is_upper == player_is_upper
+    my = piece_is_upper == target_player
     piece = Piece.from_str(top_piece)
 
     table = EVAL_TABLE_MY if my else EVAL_TABLE_RIVAL
@@ -119,7 +119,9 @@ def evaluate_cell(
     score = table[Criteria.BASE]
 
     if piece != Piece.Queen and is_blocking_rival_piece(
-        player, cell, upper=piece_is_upper
+        player,
+        cell,
+        target_player=piece_is_upper,
     ):
         score = table[Criteria.GENERIC_BLOCKING]
 
@@ -147,7 +149,7 @@ def evaluate_cell(
 evaluated = 0
 
 
-def evaluate_position(player: Player, *, upper: bool) -> tuple[int, State]:
+def evaluate_position(player: Player, *, target_player: bool) -> tuple[int, State]:
     """
     Evaluate the position from the POV of the given player
     """
@@ -159,7 +161,11 @@ def evaluate_position(player: Player, *, upper: bool) -> tuple[int, State]:
     score = 0
 
     for cell in player.hive:
-        piece_score, game_state = evaluate_cell(player, cell, player_is_upper=upper)
+        piece_score, game_state = evaluate_cell(
+            player,
+            cell,
+            target_player=target_player,
+        )
         if game_state:
             return piece_score, game_state
         score += piece_score
@@ -255,7 +261,7 @@ class Node:
         self.depth = 0
         self.state = State.RUNNING
 
-    def next_depth(self, player: Player, end: float, *, upper: bool) -> bool:
+    def next_depth(self, player: Player, end: float, *, target_player: bool) -> bool:
         """
         Compute the next depth using the minimax algorithm
         """
@@ -269,14 +275,21 @@ class Node:
 
         with PlayMove(player, self.move):
             if self.depth == 1:
-                self.score, self.end = evaluate_position(self.player, upper=upper)
+                self.score, self.end = evaluate_position(
+                    self.player,
+                    target_player=target_player,
+                )
                 return True
 
             if self.depth == 2:
                 self.children = [Node(move, player) for move in player.valid_moves]
             else:
                 for child in self.children:
-                    if not child.next_depth(player, end, upper=not upper):
+                    if not child.next_depth(
+                        player,
+                        end,
+                        target_player=not target_player,
+                    ):
                         return False
 
             self.score, self.state = self.evaluate_children()
