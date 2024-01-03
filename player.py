@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from enum import Enum, IntEnum
 from itertools import chain, count, islice
 from random import choice
-from typing import Callable, Iterator
+from typing import Any, Callable, Iterator
 
 from base import Board
 
@@ -24,7 +24,8 @@ type BoardData = dict[int, dict[int, list[str]]]
 type BoardDataBrute = dict[int, dict[int, str]]
 type Cell = tuple[int, int]
 type Direction = tuple[int, int]
-type MoveBrute = list[str, int, int, int, int] | list[str, None, None, int, int]
+# list[str, int, int, int, int] | list[str, None, None, int, int]
+type MoveBrute = list[Any]
 
 DIRECTIONS = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)]
 
