@@ -895,17 +895,25 @@ class Player(Board):
 
         # line by line:
         # left is part of the hive or
-        # right is part of the hive
+        # right is part of the hive or
+        # can leave the hive and the target cell neighbors hive
         # if can crawl over else
-        # not at the edge of board and
-        # left or right is part of the hive and the other one is empty
+        # not at the edge of board and (
+        #   left or right is part of the hive and the other one is empty
+        #   or
+        #   can leave the hive and the target cell neighbors hive
+        # )
+
         return (
             (self.in_board(left) and not self.is_empty(left))
             or (self.in_board(right) and not self.is_empty(right))
-            or can_leave_hive
+            or (can_leave_hive and self.has_neighbor(target))
             if can_crawl_over
             else (self.in_board(left) and self.in_board(right))
-            and (self.is_empty(left) != self.is_empty(right) or can_leave_hive)
+            and (
+                self.is_empty(left) != self.is_empty(right)
+                or (can_leave_hive and self.has_neighbor(target))
+            )
         )
 
     def remove_piece_from_board(self, cell: Cell) -> str:
