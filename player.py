@@ -695,7 +695,7 @@ class Player(Board):
                 )
 
             move = functools.partial(Move, Piece.Ant, ant)
-            visited: set[Cell] = {ant}
+            visited = {ant}
             queue = deque(next_cells(ant))
 
             yield from floodfill(visited, queue, next_cells, move)
