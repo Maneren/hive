@@ -279,18 +279,17 @@ class Node:
                     if not child.next_depth(player, end, upper=not upper):
                         return False
 
-            self.score = self.evaluate_children()
+            self.score, self.state = self.evaluate_children()
 
         return True
 
-    def evaluate_children(self) -> int:
+    def evaluate_children(self) -> tuple[int, State]:
         """
         Evaluate the children of the current node
         """
 
         if not self.children:
-            self.state = State.DRAW
-            return 0
+            return 0, State.DRAW
 
         children = self.children
 
@@ -306,7 +305,9 @@ class Node:
 
         self.children = children[:limit]
 
-        return -self.children[0].score
+        best = self.children[0]
+
+        return -best.score, best.state.inverse()
 
     def __gt__(self, other: Node) -> bool:
         return self.score > other.score
