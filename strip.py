@@ -73,7 +73,11 @@ class TypeHintRemover(ast.NodeTransformer):
         for i in reversed(to_pop):
             node.body.pop(i)
 
-        decorators = [decorator.id for decorator in node.decorator_list]
+        decorators = [
+            decorator.id
+            for decorator in node.decorator_list
+            if isinstance(decorator, ast.Name)
+        ]
 
         if "dataclass" in decorators:
             node.decorator_list = []
