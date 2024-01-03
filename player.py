@@ -31,9 +31,7 @@ DIRECTIONS = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)]
 
 
 def length_of_iter[T](iterator: Iterator[T]) -> int:
-    """
-    Count the number of elements in an iterator
-    """
+    """Count the number of elements in an iterator."""
     return len(tuple(iterator))
 
 
@@ -43,6 +41,7 @@ def floodfill[T](
     next_fn: Callable[[Cell], Iterator[Cell]],
     map_fn: Callable[[Cell], T] = lambda x: x,
 ) -> Iterator[T]:
+    """Run floodfill algorithm."""
     while queue:
         current = queue.popleft()
         if current in visited:
@@ -53,9 +52,7 @@ def floodfill[T](
 
 
 def parse_board(string: str) -> BoardDataBrute:
-    """
-    Parse board from string
-    """
+    """Parse board from string."""
     board: BoardDataBrute = {}
     lines = string.splitlines()
     for q, line in enumerate(lines):
@@ -67,13 +64,20 @@ def parse_board(string: str) -> BoardDataBrute:
 
 
 def convert_board(board: BoardDataBrute) -> BoardData:
+    """
+    Convert board to internal representation.
+
+    Utilizes lists instead of strings for faster manipulations.
+    """
     return {p: {q: list(board[p][q]) for q in board[p]} for p in board}
 
 
 def is_blocking_rival_piece(player: Player, cell: Cell, *, target_player: bool) -> bool:
     """
-    Check if the piece owned by `target_player` prevents a rival's piece from moving,
-    by being its only neighbor
+    Check if the piece prevents a rival's piece from moving.
+
+    That means that the piece owned by `target_player` is the only neighbor
+    of a piece owned by `target_player`'s rival.
     """
     seen = False
 
@@ -91,22 +95,25 @@ def is_blocking_rival_piece(player: Player, cell: Cell, *, target_player: bool) 
 
 class Criteria(IntEnum):
     """
-    - base points for every piece on the board
-    - piece (that is not queen) is blocking another piece from moving, by being
-      it's only neighbor
-    - beetle is on top of rival's piece (bonus points, if it is a queen)
-    - penalty for every neighbor of queen
-    - penalty is queen is completely surrounded
-    - penalty if queen can't move
+    Criteria for the evaluation function.
+
+    Used to index the evaluation tables.
     """
 
     BASE = 0
+    """Base points for every piece on the board"""
     GENERIC_BLOCKING = 1
+    """Piece (other than a queen) is blocking another piece from moving"""
     BEETLE_BLOCKING = 2
+    """Beetle is on top of a rival's piece"""
     BEETLE_BLOCKING_QUEEN_BONUS = 3
+    """Beetle is on top of the rival's queen (adds to `BEETLE_BLOCKING`)"""
     QUEEN_NEIGHBOR = 4
+    """Penalty for the every neighbor of queen"""
     QUEEN_SURROUNDED = 5
+    """Penalty if the queen is completely surrounded"""
     QUEEN_BLOCKED = 6
+    """Penalty if the queen can't move"""
 
 
 EVAL_TABLE_MY = [1, 600, 200, 1000, -400, -1000000, -400, 200]
@@ -172,10 +179,7 @@ evaluated = 0
 
 
 def evaluate_position(player: Player, *, target_player: bool) -> tuple[int, State]:
-    """
-    Evaluate the position from the POV of the given player
-    """
-
+    """Evaluate the position from the POV of the given player."""
     global evaluated
 
     evaluated += 1
@@ -196,9 +200,7 @@ def evaluate_position(player: Player, *, target_player: bool) -> tuple[int, Stat
 
 
 class Piece(str, Enum):
-    """
-    Possible pieces
-    """
+    """Game pieces."""
 
     Queen = "Q"
     Spider = "S"
@@ -208,18 +210,21 @@ class Piece(str, Enum):
 
     @staticmethod
     def from_str(string: str) -> Piece:
+        """Convert a string to a `Piece`."""
         return Piece(string.upper())
 
     # overrides str for little speed bonus, since all are already upper
     def upper(self) -> str:
+        """Return the string representation in upper case."""
         return self.value
 
 
 @dataclass
 class Move:
     """
-    Holds a move, defined by a piece, start cell and end cell. Start is None
-    when placing a new piece from reserve.
+    Holds a move, defined by a piece, start cell and end cell.
+
+    Start is `None` when placing a new piece from reserve.
     """
 
     _piece: Piece
@@ -227,9 +232,7 @@ class Move:
     end: Cell
 
     def to_brute(self, upper: bool) -> MoveBrute:
-        """
-        Convert the move to brute representation
-        """
+        """Convert the move to brute representation."""
         piece = self.piece_str(upper)
 
         if self.start is None:
@@ -238,19 +241,16 @@ class Move:
         return [piece, *self.start, *self.end]
 
     def piece_str(self, upper: bool) -> str:
-        """
-        Return the string representation of the used piece
-        """
+        """Return the string representation of the used piece."""
         return self._piece.upper() if upper else self._piece.lower()
 
     def __str__(self) -> str:
+        """Return the string representation of the move."""
         return f"{self.piece_str(True)}: {self.start} -> {self.end}"
 
 
 class State(IntEnum):
-    """
-    State of the game
-    """
+    """State of the game."""
 
     RUNNING = 0
     WIN = 1
@@ -259,14 +259,17 @@ class State(IntEnum):
 
     def is_end(self) -> bool:
         """
-        Checks if the represents a final state
+        Check if the state represents the end of the game.
+
+        That is WIN, LOSS or DRAW.
         """
         return self > 0
 
     def inverse(self) -> State:  # sourcery skip: assign-if-exp, reintroduce-else
         """
-        Returns the inverse state - WIN -> LOSS, LOSS -> WIN. Every other
-        state is unchanged.
+        Return the inverse state.
+
+        Swaps the WIN and LOSS states, every other state is unchanged.
         """
         if self == State.WIN:
             return State.LOSS
@@ -277,9 +280,7 @@ class State(IntEnum):
 
 
 class Node:
-    """
-    Node in the minimax tree.
-    """
+    """Node in the minimax tree."""
 
     move: Move
     player: Player
@@ -293,6 +294,12 @@ class Node:
         move: Move,
         player: Player,
     ) -> None:
+        """
+        Initialize the node.
+
+        `player` is the one holding the board, not the evaluation target. That is
+        specified when calling `next_depth`.
+        """
         self.move = move
         self.player = player
         self.score = 0
@@ -345,10 +352,7 @@ class Node:
         return True
 
     def evaluate_children(self) -> tuple[int, State]:
-        """
-        Evaluate the children of the current node
-        """
-
+        """Evaluate the children of the current node."""
         if not self.children:
             return 0, State.DRAW
 
@@ -371,15 +375,17 @@ class Node:
         return -best.score, best.state.inverse()
 
     def __gt__(self, other: Node) -> bool:
+        """Compare nodes by score."""
         return self.score > other.score
 
     def __str__(self) -> str:
+        """Return a string representation of the node."""
         return f"{self.move}: {self.score}"
 
 
 @contextmanager
 def lift_piece(player: Player, cell: Cell) -> Iterator[str]:
-    """Lifts a piece from the board for the duration of the context"""
+    """Lifts a piece from the board for the duration of the context."""
     # ^ single line docstrings should fit on one line, as per PEP 257
     piece = player.remove_piece_from_board(cell)
     yield piece
@@ -388,7 +394,7 @@ def lift_piece(player: Player, cell: Cell) -> Iterator[str]:
 
 @contextmanager
 def play_move(player: Player, move: Move) -> Iterator[None]:
-    """Plays a move for the duration of the context"""
+    """Plays a move for the duration of the context."""
     player.play_move(move)
     yield
     player.reverse_move(move)
@@ -429,33 +435,30 @@ class Player(Board):
 
     @property
     def upper(self) -> bool:
+        """The player uses uppercased pieces."""
         return self.myColorIsUpper
 
     @property
     def cells(self) -> Iterator[Cell]:
-        """
-        Iterator over all cells
-        """
+        """Iterator over all cells."""
         return ((p, q) for p in self.board for q in self.board[p])
 
     @property
     def empty_cells(self) -> Iterator[Cell]:
-        """
-        Iterator over all empty cells
-        """
+        """Iterator over all empty cells."""
         return (cell for cell in self.cells if self.is_empty(cell))
 
     @property
     def nonempty_cells(self) -> Iterator[Cell]:
-        """
-        Iterator over all nonempty cells
-        """
+        """Iterator over all nonempty cells."""
         return (cell for cell in self.cells if not self.is_empty(cell))
 
     @property
     def my_pieces_on_board(self) -> Iterator[tuple[Piece, Cell]]:
         """
-        Iterator over all my pieces on the board. Uses self.hive directly
+        Iterator over all my pieces on the board.
+
+        Uses self.hive directly.
         """
         return (
             (Piece.from_str(self.top_piece_in(cell)), cell)
@@ -465,9 +468,7 @@ class Player(Board):
 
     @property
     def my_placable_pieces(self) -> Iterator[Piece]:
-        """
-        Iterator over all my placable pieces
-        """
+        """Iterator over all my placable pieces."""
         return (
             Piece.from_str(piece) for piece, count in self.myPieces.items() if count > 0
         )
@@ -475,7 +476,9 @@ class Player(Board):
     @property
     def my_movable_pieces(self) -> Iterator[tuple[Piece, Cell]]:
         """
-        Iterator over all my movable pieces. Uses self.hive transitively
+        Iterator over all my movable pieces.
+
+        Uses self.hive transitively.
         """
         return (
             (piece, cell)
@@ -486,8 +489,9 @@ class Player(Board):
     @property
     def valid_placements(self) -> Iterator[Cell]:
         """
-        Iterator over all valid placements. Uses self.hive transitively
-        and expects at least one piece to be already placed
+        Iterator over all valid placements.
+
+        Uses self.hive transitively and expects at least one piece to be already placed
         """
         return (
             cell
@@ -498,9 +502,10 @@ class Player(Board):
     @property
     def valid_moves(self) -> Iterator[Move]:
         """
-        Iterator over all valid moves
-        """
+        Iterator over all valid moves.
 
+        Uses self.hive transitively
+        """
         mapping = {
             Piece.Ant: self.ants_moves,
             Piece.Queen: self.queens_moves,
@@ -531,9 +536,7 @@ class Player(Board):
 
     @property
     def cells_around_hive(self) -> set[Cell]:
-        """
-        Set of all cells around the hive
-        """
+        """Set of all cells around the hive."""
         return {
             neighbor
             for cell in self.hive
@@ -542,8 +545,9 @@ class Player(Board):
 
     def move(self) -> MoveBrute:
         """
-        Returns a best move for the current self.board. Has to first properly initialize
-        the inner state.
+        Return a best move for the current self.board.
+
+        Has to first properly initialize the inner state - self._board and self.hive.
 
         Format:
             [piece, oldP, oldQ, newP, newQ] - move from (oldP, oldQ) to (newP, newQ)
@@ -552,7 +556,6 @@ class Player(Board):
 
         *Note: the API has to stay this way to be compatible with Brute*
         """
-
         end = time.perf_counter() + 0.95
 
         self._board = convert_board(self.board)
@@ -578,6 +581,7 @@ class Player(Board):
         return self.minimax(nodes, end) if nodes else []
 
     def minimax(self, nodes: list[Node], end: float) -> MoveBrute:
+        """Run the minimax algorithm on the list of nodes return the best move."""
         best = nodes[0]
 
         depth = 0
@@ -621,10 +625,7 @@ class Player(Board):
         return best.move.to_brute(self.upper)
 
     def moving_breaks_hive(self, cell: Cell) -> bool:
-        """
-        Check if moving the given piece breaks the hive into parts
-        """
-
+        """Check if moving the given piece breaks the hive into parts."""
         if len(self[cell]) > 1:
             return False
 
@@ -657,11 +658,10 @@ class Player(Board):
 
     def queens_moves(self, queen: Cell) -> Iterator[Move]:
         """
-        Iterator over all valid moves for the queen in the current board.
+        Return iterator over all valid moves for the queen.
 
         Queen can move one step in any direction.
         """
-
         with lift_piece(self, queen) as piece:
             assert piece.upper() == Piece.Queen, f"{piece} at {queen} is not a Queen"
             move = functools.partial(Move, Piece.Queen, queen)
@@ -669,12 +669,11 @@ class Player(Board):
 
     def ants_moves(self, ant: Cell) -> Iterator[Move]:
         """
-        Iterator over all valid moves for the ant in the current board.
+        Return an iterator over all valid moves for the ant.
 
         Ant can move any number of steps, but always has to stay right next
         to the hive.
         """
-
         with lift_piece(self, ant) as piece:
             assert piece.upper() == Piece.Ant, f"{piece} at {ant} is not an Ant"
 
@@ -693,12 +692,11 @@ class Player(Board):
 
     def beetles_moves(self, beetle: Cell) -> Iterator[Move]:
         """
-        Iterator over all valid moves for the beetle in the current board.
+        Return an iterator over all valid moves for the beetle.
 
         Beetle can make one step in any direction, while also being able to climb
         on top of other pieces.
         """
-
         with lift_piece(self, beetle) as piece:
             assert piece.upper() == Piece.Beetle, f"{piece} at {beetle} is not a Beetle"
 
@@ -708,12 +706,11 @@ class Player(Board):
 
     def grasshoppers_moves(self, grasshopper: Cell) -> Iterator[Move]:
         """
-        Iterator over all valid moves for the grasshopper in the current board.
+        Return an iterator over all valid moves for the grasshopper.
 
         Grasshopper can jump in any direction in straght line, but always has to
         jump over at least one other piece.
         """
-
         with lift_piece(self, grasshopper) as piece:
             assert (
                 piece.upper() == Piece.Grasshopper
@@ -746,12 +743,11 @@ class Player(Board):
 
     def spiders_moves(self, spider: Cell) -> Iterator[Move]:
         """
-        Iterator over all valid moves for the spider in the current board.
+        Return an iterator over all valid moves for the spider.
 
         Spider can move only exactly three steps, while staying right next
         to the hive.
         """
-
         with lift_piece(self, spider) as piece:
             assert piece.upper() == Piece.Spider, f"{piece} at {spider} is not a Spider"
 
@@ -777,23 +773,16 @@ class Player(Board):
             yield from map(move, stack)
 
     def neighboring_cells_unchecked(self, cell: Cell) -> Iterator[Cell]:
-        """
-        Iterator over all cells neighboring (p,q), without checking
-        if they are in the board
-        """
+        """Return an iterator over cells neighboring (p,q), without bound checking."""
         p, q = cell
         return ((p + dp, q + dq) for dp, dq in DIRECTIONS)
 
     def neighboring_cells(self, cell: Cell) -> Iterator[Cell]:
-        """
-        Iterator over all cells neighboring (p,q)
-        """
+        """Return an iterator over all cells neighboring (p,q)."""
         return filter(self.in_board, self.neighboring_cells_unchecked(cell))
 
     def empty_neighboring_cells(self, cell: Cell) -> Iterator[Cell]:
-        """
-        Iterator over all cells neighboring (p,q) that are empty
-        """
+        """Return an iterator over all cells neighboring (p,q) that are empty."""
         return (
             neighbor
             for neighbor in self.neighboring_cells(cell)
@@ -801,9 +790,7 @@ class Player(Board):
         )
 
     def neighbors(self, cell: Cell) -> Iterator[Cell]:
-        """
-        Iterator over all cells neighboring (p,q) that aren't empty
-        """
+        """Return an iterator over all cells neighboring (p,q) that aren't empty."""
         return (
             neighbor
             for neighbor in self.neighboring_cells(cell)
@@ -817,10 +804,9 @@ class Player(Board):
         can_crawl_over: bool = False,
     ) -> Iterator[Cell]:
         """
-        Iterator over all cells neighboring (p,q), that can be accessed from (p,q) and
-        moving to which won't leave the hive (that means they have at least
-        one neighbor). By default, only empty cells are returned, but optionally
-        non-empty cells can be included as well.
+        Return an iterator over all cells reachable from (p,q).
+
+        For more details see `can_move_to`.
         """
         return (
             neighbor
@@ -829,57 +815,41 @@ class Player(Board):
         )
 
     def top_piece_in(self, cell: Cell) -> str:
-        """
-        Returns the top piece in given cell
-        """
+        """Return the top piece in given cell."""
         return self[cell][-1]
 
     def my_piece_remaining(self, piece: Piece) -> int:
-        """
-        Returns the number of my pieces of given type
-        """
+        """Return the number of my pieces of given type."""
         piece_str = piece.upper() if self.upper else piece.lower()
         return self.myPieces[piece_str]
 
     def is_my_cell(self, cell: Cell) -> bool:
-        """
-        Checks if (p,q) is a cell owned by the player
-        """
+        """Check if (p,q) is a cell owned by the player."""
         piece = self[cell][-1]
 
         return piece.isupper() == self.upper or piece.islower() != self.upper
 
     def is_empty(self, cell: Cell) -> bool:
-        """
-        Checks if (p,q) is an empty cell
-        """
+        """Check if (p,q) is an empty cell."""
         return not self[cell]
 
     def in_board(self, cell: Cell) -> bool:
-        """
-        Check if (p,q) is a valid coordinate within the board
-        """
+        """Check if (p,q) is a valid coordinate within the board."""
         p, q = cell
         return 0 <= q < self.size and -(q // 2) <= p < self.size - q // 2
 
     def rotate_left(self, direction: Direction) -> Direction:
-        """
-        Returns direction rotated one tile to left
-        """
+        """Return direction rotated one tile to left."""
         p, q = direction
         return p + q, -p
 
     def rotate_right(self, direction: Direction) -> Direction:
-        """
-        Returns direction rotated one tile to right
-        """
+        """Return direction rotated one tile to right."""
         p, q = direction
         return -q, p + q
 
     def neighbors_only_my_pieces(self, cell: Cell) -> bool:
-        """
-        Check if all neighbors of (p,q) are owned by the player
-        """
+        """Check if all neighbors of (p,q) are owned by the player."""
         return all(self.is_my_cell(neighbor) for neighbor in self.neighbors(cell))
 
     def can_move_to(
@@ -890,10 +860,11 @@ class Player(Board):
         can_crawl_over: bool = False,
     ) -> bool:
         """
-        Check if a piece can move from (p,q) to (np,nq), ie. there is exactly one
-        neighbor in the direction of move
-        """
+        Check if a piece can move from (p,q) to (np,nq).
 
+        When `can_crawl_over` is True, occupied cells are also considered reachable and
+        blocking is ignored.
+        """
         # if target is not empty and can't crawl over, can't move
         if not self.is_empty(target) and not can_crawl_over:
             return False
@@ -924,9 +895,7 @@ class Player(Board):
         )
 
     def remove_piece_from_board(self, cell: Cell) -> str:
-        """
-        Remove the top-most piece at the given cell and return it
-        """
+        """Remove the top-most piece at the given cell and return it."""
         piece = self[cell].pop()
 
         if self.is_empty(cell):
@@ -935,16 +904,12 @@ class Player(Board):
         return piece
 
     def add_piece_to_board(self, cell: Cell, piece: str) -> None:
-        """
-        Place the given piece at the given cell
-        """
+        """Place the given piece at the given cell."""
         self[cell].append(piece)
         self.hive.add(cell)
 
     def play_move(self, move: Move) -> None:
-        """
-        Play the given move
-        """
+        """Play the given move."""
         piece = move.piece_str(self.upper)
         start = move.start
         end = move.end
@@ -958,9 +923,7 @@ class Player(Board):
         self.add_piece_to_board(end, piece)
 
     def reverse_move(self, move: Move) -> None:
-        """
-        Reverse the given move
-        """
+        """Reverse the given move."""
         piece = move.piece_str(self.upper)
         start = move.start
         end = move.end
@@ -973,16 +936,19 @@ class Player(Board):
         removed = self.remove_piece_from_board(end)
         assert removed == piece
 
-    ## allows indexing the board directly using player[cell] or player[p, q]
+    # allows indexing the board directly using player[cell] or player[p, q]
     def __getitem__(self, cell: Cell) -> list[str]:
+        """Return the list of pieces at the given cell."""
         p, q = cell
         return self._board[p][q]
 
     def __setitem__(self, cell: Cell, value: str | list[str]) -> None:
+        """Set the list of pieces at the given cell."""
         p, q = cell
         self._board[p][q] = value if isinstance(value, list) else list(value)
 
     def __str__(self) -> str:
+        """Return a string representation of the board."""
         lines = []
 
         for q in range(self.size):
