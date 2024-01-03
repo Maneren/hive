@@ -73,7 +73,8 @@ def convert_board(board: BoardDataBrute) -> BoardData:
 
 def is_blocking_rival_piece(player: Player, cell: Cell, *, target_player: bool) -> bool:
     """
-    Check if the piece prevents rival's piece from moving
+    Check if the piece owned by `target_player` prevents a rival's piece from moving,
+    by being its only neighbor
     """
     seen = False
 
@@ -90,6 +91,16 @@ def is_blocking_rival_piece(player: Player, cell: Cell, *, target_player: bool) 
 
 
 class Criteria(IntEnum):
+    """
+    - base points for every piece on the board
+    - piece (that is not queen) is blocking another piece from moving, by being
+      it's only neighbor
+    - beetle is on top of rival's piece (bonus points, if it is a queen)
+    - penalty for every neighbor of queen
+    - penalty is queen is completely surrounded
+    - penalty if queen can't move
+    """
+
     BASE = 0
     GENERIC_BLOCKING = 1
     BEETLE_BLOCKING = 2
@@ -109,6 +120,12 @@ def evaluate_cell(
     *,
     target_player: bool,
 ) -> tuple[int, State]:
+    """
+    Evaluate the given cell from the POV of the given player.
+
+    Uses the evaluation tables `EVAL_TABLE_MY` and `EVAL_TABLE_RIVAL`,
+    following the evaluation criteria in `Criteria`
+    """
     top_piece = player.top_piece_in(cell)
     piece_is_upper = top_piece.isupper()
     my = piece_is_upper == target_player
@@ -178,16 +195,17 @@ class Piece(str, Enum):
     Possible pieces
     """
 
-    Queen = "Q"  # bee
-    Spider = "S"  # spider
-    Beetle = "B"  # beetle
-    Ant = "A"  # ant
-    Grasshopper = "G"  # grasshopper
+    Queen = "Q"
+    Spider = "S"
+    Beetle = "B"
+    Ant = "A"
+    Grasshopper = "G"
 
     @staticmethod
     def from_str(string: str) -> Piece:
         return Piece(string.upper())
 
+    # overrides str for little speed bonus, since all are already upper
     def upper(self) -> str:
         return self.value
 
@@ -195,7 +213,8 @@ class Piece(str, Enum):
 @dataclass
 class Move:
     """
-    Holds a move - piece, start cell and end cell. Start is None for placing a new piece
+    Holds a move, defined by a piece, start cell and end cell. Start is None
+    when placing a new piece from reserve.
     """
 
     _piece: Piece
@@ -234,6 +253,9 @@ class State(IntEnum):
     DRAW = 3
 
     def is_end(self) -> bool:
+        """
+        Checks if the represents a final state
+        """
         return self > 0
 
 
@@ -263,7 +285,16 @@ class Node:
 
     def next_depth(self, player: Player, end: float, *, target_player: bool) -> bool:
         """
-        Compute the next depth using the minimax algorithm
+        Compute the next depth using the minimax algorithm.
+
+        First call evaluates the current position, second call creates
+        the children of the current node and all next calls, call
+        this function recursively on the children.
+
+        Returns True if it finished computing the next depth before
+        time specified in `end`, otherwise returns False. When that happens,
+        the results should be discarded, since they are only half done and
+        thus not accurate.
         """
         if self.state.is_end():
             return True
