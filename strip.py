@@ -4,8 +4,6 @@ import ast
 import pathlib
 import sys
 
-import astunparse
-
 if len(sys.argv) < 2:
     print(f"Usage: {sys.argv[0]} <input file> [<output file>]")
     sys.exit(1)
@@ -175,7 +173,8 @@ parsed_source = ast.parse(input_file)
 # apply the visitor
 transformed = TypeHintRemover().visit(parsed_source)
 # convert the AST back to source code
-unparsed = astunparse.unparse(transformed)
+ast.fix_missing_locations(transformed)
+unparsed = ast.unparse(transformed)
 
 
 if len(sys.argv) < 3 or (output_file_path := sys.argv[2]) == input_file_path:
