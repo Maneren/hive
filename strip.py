@@ -95,7 +95,11 @@ class TypeHintRemover(ast.NodeTransformer):
         body = []
 
         for var in class_vars:
-            name = var.target.id
+            target = var.target
+            if not isinstance(target, ast.Name):
+                continue
+
+            name = target.id
             arguments.append(ast.arg(arg=name))
             body.append(
                 ast.Assign(
@@ -109,6 +113,8 @@ class TypeHintRemover(ast.NodeTransformer):
             args=ast.arguments(
                 args=arguments,
                 defaults=[],
+                posonlyargs=[],
+                kwonlyargs=[],
             ),
             body=body,
             decorator_list=[],
@@ -117,54 +123,29 @@ class TypeHintRemover(ast.NodeTransformer):
 
         node.body.insert(0, init)
 
-    # remove all TypeVars and TypeAliases
-    def visit_Assign(self, node: ast.Assign) -> ast.AST | None:
-        value = node.value
-
-        if (
-            isinstance(value, ast.BinOp)
-            and (left := value.left)
-            and isinstance(left, ast.Subscript)
-        ):
-            value = left
-
-        if (
-            isinstance(value, ast.Subscript)
-            and (subvalue := value.value)
-            and isinstance(subvalue, ast.Name)
-            and subvalue.id in ("list", "dict", "tuple")
-        ):
-            return None
-
-        if (
-            isinstance(value, ast.Call)
-            and (func := value.func)
-            and isinstance(func, ast.Name)
-            and func.id == "TypeVar"
-        ):
-            return None
-
-        return node
-
     # remove all type annotations from assignments
     def visit_AnnAssign(self, node: ast.AnnAssign) -> ast.AST | None:
-        if node.value is None:
-            return None
-
-        new = ast.Assign([node.target], node.value)
-        return self.visit_Assign(new)
+        return None if node.value is None else ast.Assign([node.target], node.value)
 
     # remove all import 'typing' statements
     def visit_Import(self, node: ast.Import) -> ast.AST | None:
-        node.names = [n for n in node.names if n.name != "typing"]
+        node.names = [n for n in node.names if n.name not in {"typing", "dataclasses"}]
         return node if node.names else None
 
     # remove all import from 'typing' and '__future__' statements
     def visit_ImportFrom(self, node: ast.ImportFrom) -> ast.AST | None:
-        return node if node.module not in {"typing", "__future__"} else None
+        return (
+            node if node.module not in {"typing", "__future__", "dataclasses"} else None
+        )
 
     # remove all assert statements
-    def visit_Assert(self, _node: ast.Assert) -> ast.AST | None:
+    def visit_Assert(self, node: ast.Assert) -> ast.AST | None:
+        return None
+
+    def visit_TypeAlias(self, node: ast.TypeAlias) -> ast.AST | None:
+        return None
+
+    def visit_TypeVar(self, node: ast.TypeVar) -> ast.AST | None:
         return None
 
 
