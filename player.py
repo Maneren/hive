@@ -425,6 +425,9 @@ class Node:
 
     def __str__(self) -> str:
         """Return a string representation of the node."""
+        if self.state.is_end():
+            return f"{self.move}: {self.score} {self.state}"
+
         return f"{self.move}: {self.score}"
 
 
