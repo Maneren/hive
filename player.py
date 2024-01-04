@@ -578,7 +578,7 @@ class Player(Board):
             placement = choice(list(self.cells_around_hive))
             return Move(Piece.Spider, None, placement).to_brute(self.upper)
 
-        if TEST:
+        if TEST or not self.tournament:
             possible_moves = list(self.valid_moves)
             return choice(possible_moves).to_brute(self.upper) if possible_moves else []
 
