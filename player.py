@@ -629,12 +629,19 @@ class Player(Board):
 
         nodes = [Node(move, self) for move in self.valid_moves]
 
-        return self.minimax(nodes, end) if nodes else []
+        if not nodes:
+            return []
 
-    def minimax(self, nodes: list[Node], end: float) -> MoveBrute:
-        """Run the minimax algorithm on the list of nodes return the best move."""
+        best, depth = self.minimax(nodes, end)
+
         global evaluated
+        print(f"Searched to depth {depth} ({evaluated} pos): {best.score}")
+        evaluated = 0
 
+        return best.move.to_brute(self.upper)
+
+    def minimax(self, nodes: list[Node], end: float) -> tuple[Node, int]:
+        """Run the minimax algorithm on the list of nodes return the best move."""
         best = nodes[0]
 
         depth = 0
@@ -644,9 +651,7 @@ class Player(Board):
 
             for node in nodes:
                 if not node.next_depth(self, end, target_player=self.upper):
-                    print(f"Searched to depth {depth} ({evaluated} pos): {best.score}")
-                    evaluated = 0
-                    return best.move.to_brute(self.upper)
+                    return best, depth - 1
 
             if depth <= 2:
                 limit = len(nodes)
@@ -660,7 +665,7 @@ class Player(Board):
             win = next(win_moves, None)
 
             if win:
-                return win.move.to_brute(self.upper)
+                return win, depth
 
             nodes.sort(reverse=True)
 
@@ -671,11 +676,15 @@ class Player(Board):
             if not nodes:
                 break
 
+            if self.my_piece_remaining(Piece.Queen) != 0:
+                for node in nodes:
+                    if node.move.piece == Piece.Queen:
+                        node.score += 100
+                        break
+
             best = max(nodes)
 
-        print(f"Searched to depth {depth} ({evaluated} pos): {best.score}")
-        evaluated = 0
-        return best.move.to_brute(self.upper)
+        return best, depth
 
     def moving_breaks_hive(self, cell: Cell) -> bool:
         """Check if moving the given piece breaks the hive into parts."""
