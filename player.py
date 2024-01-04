@@ -992,11 +992,14 @@ class Player(Board):
         piece_str = piece.upper() if self.upper else piece.lower()
         return self.myPieces[piece_str]
 
-    def is_my_cell(self, cell: Cell) -> bool:
+    def is_my_cell(self, cell: Cell, target_player: bool | None = None) -> bool:
         """Check if (p,q) is a cell owned by the player."""
         piece = self[cell][-1]
 
-        return piece.isupper() == self.upper or piece.islower() != self.upper
+        if target_player is None:
+            target_player = self.upper
+
+        return piece.isupper() == target_player or piece.islower() != target_player
 
     def is_empty(self, cell: Cell) -> bool:
         """Check if (p,q) is an empty cell."""
