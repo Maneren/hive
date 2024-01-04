@@ -270,7 +270,7 @@ class Move:
     Start is `None` when placing a new piece from reserve.
     """
 
-    _piece: Piece
+    piece: Piece
     start: Cell | None
     end: Cell
 
@@ -285,7 +285,7 @@ class Move:
 
     def piece_str(self, upper: bool) -> str:
         """Return the string representation of the used piece."""
-        return self._piece.upper() if upper else self._piece.lower()
+        return self.piece.upper() if upper else self.piece.lower()
 
     def __str__(self) -> str:
         """Return the string representation of the move."""
