@@ -972,6 +972,10 @@ class Player(Board):
         """Check if all neighbors of (p,q) are owned by the player."""
         return all(self.is_my_cell(neighbor) for neighbor in self.neighbors(cell))
 
+    def has_neighbor(self, cell: Cell) -> bool:
+        """Check if (p,q) has a neighbor."""
+        return any(self.neighbors(cell))
+
     def can_move_to(
         self,
         origin: Cell,
