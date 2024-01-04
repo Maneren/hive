@@ -1076,7 +1076,11 @@ class Player(Board):
             else (self.in_board(left) and self.in_board(right))
             and (
                 self.is_empty(left) != self.is_empty(right)
-                or (can_leave_hive and self.has_neighbor(target))
+                or (
+                    can_leave_hive
+                    and self.has_neighbor(target)
+                    and not (self.is_empty(left) and self.is_empty(right))
+                )
             )
         )
 
