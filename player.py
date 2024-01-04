@@ -381,14 +381,14 @@ class Node:
 
             if self.depth == 2:
                 self.children = [Node(move, player) for move in player.valid_moves]
-            else:
-                for child in self.children:
-                    if not child.next_depth(
-                        player,
-                        end,
-                        target_player=not target_player,
-                    ):
-                        return False
+
+            for child in self.children:
+                if not child.next_depth(
+                    player,
+                    end,
+                    target_player=not target_player,
+                ):
+                    return False
 
             self.score, self.state = self.evaluate_children()
 
