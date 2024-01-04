@@ -102,18 +102,22 @@ EVAL_TABLE_RIVAL = [-1, 600, -200, -800, 400, 1000000, 400, -100, 50]
 
 
 def check_blocking(
-    player: Player, cell: Cell, table: list[int], *, target_player: bool
+    player: Player,
+    cell: Cell,
+    table: list[int],
+    *,
+    target_player: bool,
+    only_my: bool = False,
 ) -> int:
     """Check if the given piece is blocking another piece."""
     neighbors = player.neighbors(cell)
     neighbor = next(neighbors, None)
 
     if neighbor and not next(neighbors, None):
-        return table[
-            Criteria.BLOCKING_RIVAL
-            if player.top_piece_in(neighbor).upper() == target_player
-            else Criteria.BLOCKING_FRIEND
-        ]
+        if not player.is_my_cell(neighbor, target_player):
+            return table[Criteria.BLOCKING_RIVAL] if not only_my else 0
+
+        return table[Criteria.BLOCKING_FRIEND]
 
     return 0
 
@@ -162,13 +166,20 @@ def evaluate_cell(
 
     score = table[Criteria.BASE]
 
-    if piece not in (Piece.Queen, Piece.Beetle):
-        score += check_blocking(player, cell, table, target_player=target_player)
-        return score, State.RUNNING
+    score += check_blocking(
+        player,
+        cell,
+        table,
+        target_player=target_player,
+        only_my=piece in {Piece.Beetle, Piece.Queen},
+    )
 
     if piece == Piece.Beetle:
-        pieces = player[cell]
-        score += check_beetle_blocking(pieces, table, piece_is_upper=piece_is_upper)
+        score += check_beetle_blocking(
+            player[cell],
+            table,
+            piece_is_upper=piece_is_upper,
+        )
 
     if piece == Piece.Queen:
         c = length_of_iter(player.neighbors(cell))
