@@ -575,7 +575,7 @@ class Player(Board):
 
         *Note: the API has to stay this way to be compatible with Brute*
         """
-        end = time.perf_counter() + 0.95
+        end = time.perf_counter() + 0.98
 
         self._board = convert_board(self.board)
         self.hive = set(self.nonempty_cells)
