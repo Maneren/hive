@@ -72,27 +72,6 @@ def convert_board(board: BoardDataBrute) -> BoardData:
     return {p: {q: list(board[p][q]) for q in board[p]} for p in board}
 
 
-def is_blocking_rival_piece(player: Player, cell: Cell, *, target_player: bool) -> bool:
-    """
-    Check if the piece prevents a rival's piece from moving.
-
-    That means that the piece owned by `target_player` is the only neighbor
-    of a piece owned by `target_player`'s rival.
-    """
-    seen = False
-
-    for neighbor in player.neighbors(cell):
-        if player.top_piece_in(neighbor).isupper() == target_player:
-            return False
-
-        if seen:
-            return False
-
-        seen = True
-
-    return seen
-
-
 class Criteria(IntEnum):
     """
     Criteria for the evaluation function.
@@ -102,8 +81,8 @@ class Criteria(IntEnum):
 
     BASE = 0
     """Base points for every piece on the board"""
-    GENERIC_BLOCKING = 1
-    """Piece (other than a queen) is blocking another piece from moving"""
+    BLOCKING_RIVAL = 1
+    """Piece (other than queen and beetle) has only one neighbor - rival"""
     BEETLE_BLOCKING = 2
     """Beetle is on top of a rival's piece"""
     BEETLE_BLOCKING_QUEEN_BONUS = 3
@@ -114,10 +93,52 @@ class Criteria(IntEnum):
     """Penalty if the queen is completely surrounded"""
     QUEEN_BLOCKED = 6
     """Penalty if the queen can't move"""
+    BLOCKING_FRIEND = 7
+    """Piece (other than queen and beetle) has only one neighbor - friend"""
 
 
-EVAL_TABLE_MY = [1, 600, 200, 1000, -400, -1000000, -400, 200]
-EVAL_TABLE_RIVAL = [-1, -500, -200, -1200, 400, 1000000, 400, -100]
+EVAL_TABLE_MY = [1, -500, 200, 1000, -400, -1000000, -400, 200, -50]
+EVAL_TABLE_RIVAL = [-1, 600, -200, -800, 400, 1000000, 400, -100, 50]
+
+
+def check_blocking(
+    player: Player, cell: Cell, table: list[int], *, target_player: bool
+) -> int:
+    """Check if the given piece is blocking another piece."""
+    neighbors = player.neighbors(cell)
+    neighbor = next(neighbors, None)
+
+    if neighbor and not next(neighbors, None):
+        return table[
+            Criteria.BLOCKING_RIVAL
+            if player.top_piece_in(neighbor).upper() == target_player
+            else Criteria.BLOCKING_FRIEND
+        ]
+
+    return 0
+
+
+def check_beetle_blocking(
+    pieces: list[str],
+    table: list[int],
+    *,
+    piece_is_upper: bool,
+) -> int:
+    """Check if the given cell is blocked by a beetle."""
+    if len(pieces) <= 1:
+        return 0
+
+    second_piece = pieces[-2]
+
+    if second_piece.isupper() == piece_is_upper:
+        return -table[Criteria.BEETLE_BLOCKING]
+
+    score = table[Criteria.BEETLE_BLOCKING]
+
+    if second_piece.upper() == Piece.Queen:
+        score += table[Criteria.BEETLE_BLOCKING_QUEEN_BONUS]
+
+    return score
 
 
 def evaluate_cell(
@@ -141,27 +162,15 @@ def evaluate_cell(
 
     score = table[Criteria.BASE]
 
-    if piece != Piece.Queen and is_blocking_rival_piece(
-        player,
-        cell,
-        target_player=piece_is_upper,
-    ):
-        score = table[Criteria.GENERIC_BLOCKING]
+    if piece not in (Piece.Queen, Piece.Beetle):
+        score += check_blocking(player, cell, table, target_player=target_player)
+        return score, State.RUNNING
 
     if piece == Piece.Beetle:
         pieces = player[cell]
-        if len(pieces) >= 2:
-            second_piece = pieces[-2]
+        score += check_beetle_blocking(pieces, table, piece_is_upper=piece_is_upper)
 
-            if second_piece.isupper() != piece_is_upper:
-                score += table[Criteria.BEETLE_BLOCKING]
-
-                if second_piece.upper() == Piece.Queen:
-                    score += table[Criteria.BEETLE_BLOCKING_QUEEN_BONUS]
-            else:
-                score -= table[Criteria.GENERIC_BLOCKING]
-
-    elif piece == Piece.Queen:
+    if piece == Piece.Queen:
         c = length_of_iter(player.neighbors(cell))
 
         if c == 6:
