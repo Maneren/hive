@@ -647,10 +647,15 @@ class Player(Board):
         if len(self[cell]) > 1:
             return False
 
+        neighbor_groups = self.neighbor_groups(cell)
+
+        if neighbor_groups == 1:
+            return False
+
         if self.__cycles_need_update:
             self.update_cycles()
 
-        return False if self.is_in_cycle(cell) else self.neighbor_groups(cell) > 1
+        return not self.is_in_cycle(cell)
 
     def queens_moves(self, queen: Cell) -> Iterator[Move]:
         """
