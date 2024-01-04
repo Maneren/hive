@@ -1136,6 +1136,30 @@ class Player(Board):
         self.hive = set(self.nonempty_cells)
         self.update_cycles()
 
+        base = {
+            Piece.Queen: 1,
+            Piece.Ant: 2,
+            Piece.Beetle: 2,
+            Piece.Grasshopper: 2,
+            Piece.Spider: 2,
+        }
+
+        if self.upper:
+            rival_pieces = {piece.lower(): count for piece, count in base.items()}
+            my_pieces = {piece.upper(): count for piece, count in base.items()}
+        else:
+            rival_pieces = {piece.upper(): count for piece, count in base.items()}
+            my_pieces = {piece.lower(): count for piece, count in base.items()}
+
+        for cell in self.hive:
+            if self.is_my_cell(cell):
+                my_pieces[self[cell][0]] -= 1
+            else:
+                rival_pieces[self[cell][0]] -= 1
+
+        self.myPieces = my_pieces
+        self.rivalPieces = rival_pieces
+
     # allows indexing the board directly using player[cell] or player[p, q]
     def __getitem__(self, cell: Cell) -> list[str]:
         """Return the list of pieces at the given cell."""
