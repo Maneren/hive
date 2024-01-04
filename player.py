@@ -417,6 +417,9 @@ class Player(Board):
 
     _board: BoardData
     hive: set[Cell]
+    cycles: list[set[Cell]]
+    __cached_cycles: dict[int, list[set[Cell]]]
+    __cycles_need_update: bool
 
     def __init__(
         self,
@@ -436,6 +439,9 @@ class Player(Board):
         self.algorithmName = "maneren"
         self._board = convert_board(self.board)
         self.hive = set(self.nonempty_cells)
+        self.cycles = []
+        self.__cached_cycles = {}
+        self.__cycles_need_update = True
 
     @property
     def upper(self) -> bool:
@@ -633,32 +639,10 @@ class Player(Board):
         if len(self[cell]) > 1:
             return False
 
-        neighbors = self.neighboring_cells_unchecked(cell)
-        first = next(neighbors)
+        if self.__cycles_need_update:
+            self.update_cycles()
 
-        groups = 0
-        in_group = first in self.hive
-
-        for neighbor in neighbors:
-            if neighbor in self.hive:
-                in_group = True
-            elif in_group:
-                in_group = False
-                groups += 1
-
-        if in_group and first not in self.hive:
-            groups += 1
-
-        if groups == 1:
-            return False
-
-        start = next(self.neighbors(cell))
-
-        visited: set[Cell] = set()
-
-        with lift_piece(self, cell):
-            _ = list(floodfill(visited, deque([start]), self.neighbors, lambda _: None))
-            return visited != self.hive
+        return False if self.is_in_cycle(cell) else self.neighbor_groups(cell) > 1
 
     def queens_moves(self, queen: Cell) -> Iterator[Move]:
         """
@@ -828,6 +812,119 @@ class Player(Board):
                 can_leave_hive=can_leave_hive,
             )
         )
+
+    def neighbor_groups(self, cell: Cell) -> int:
+        """Return the number of groups around the given cell."""
+        neighbors = self.neighboring_cells_unchecked(cell)
+        first = next(neighbors)
+
+        groups = 0
+        in_group = first in self.hive
+
+        for neighbor in neighbors:
+            if neighbor in self.hive:
+                in_group = True
+            elif in_group:
+                in_group = False
+                groups += 1
+
+        if in_group and first not in self.hive:
+            groups += 1
+
+        return groups
+
+    def update_cycles(self) -> None:
+        """
+        Find all cycles in the hive.
+
+        Runs a DFS from the given cell marking the cells visited. When already
+        cell is encountered second time, a cycle is detected. If the length of the cycle
+        is more than 2 (trio of neighboring cells), the cycle is returned.
+        """
+
+        def collect_path(
+            cell: Cell, visited_from: dict[Cell, Cell | None]
+        ) -> list[Cell]:
+            """Collect a path from the given cell."""
+            path = [cell]
+
+            while path[-1] in visited_from:
+                new = visited_from[path[-1]]
+                if not new:
+                    break
+                path.append(new)
+
+            return path
+
+        def find_cycle(start: Cell) -> set[Cell] | None:
+            """Try find a cycle in the hive."""
+            stack = [start]
+
+            visited_from: dict[Cell, Cell | None] = {start: None}
+
+            while stack:
+                new_stack = []
+
+                for cell in stack:
+                    for neighbor in self.neighbors(cell):
+                        if neighbor not in visited_from:
+                            new_stack.append(neighbor)
+                            visited_from[neighbor] = cell
+                            continue
+
+                        if visited_from[cell] == neighbor:
+                            continue
+
+                        part1 = collect_path(neighbor, visited_from)
+                        part2 = collect_path(cell, visited_from)
+
+                        last = None
+
+                        while part1[-1] == part2[-1]:
+                            part1.pop()
+                            last = part2.pop()
+
+                        if last:
+                            part2.append(last)
+
+                        result = set(part1 + part2)
+
+                        return result if len(result) > 3 else None
+
+                stack = new_stack
+
+            return None
+
+        if not self.hive or len(self.hive) <= 6:
+            return
+
+        self.__cycles_need_update = False
+
+        hashed = hash(tuple(self.hive))
+
+        if hashed in self.__cached_cycles:
+            self.cycles = self.__cached_cycles[hashed]
+            return
+
+        self.cycles = []
+
+        for cell in self.hive:
+            if self.neighbor_groups(cell) != 2:
+                continue
+
+            if self.is_in_cycle(cell):
+                continue
+
+            cycle = find_cycle(cell)
+
+            if cycle and cycle not in self.cycles:
+                self.cycles.append(cycle)
+
+        self.__cached_cycles[hashed] = self.cycles
+
+    def is_in_cycle(self, cell: Cell) -> bool:
+        """Check if cell is in a cycle."""
+        return any(cell in cycle for cycle in self.cycles)
 
     def top_piece_in(self, cell: Cell) -> str:
         """Return the top piece in given cell."""
