@@ -404,10 +404,12 @@ class Node:
         children.sort(reverse=True)
 
         depth = self.depth
-        if depth <= 4:
+        if depth <= 1:
             limit = 10
-        elif depth <= 6:
+        elif depth <= 3:
             limit = 5
+        elif depth <= 5:
+            limit = 3
         else:
             limit = 2
 
