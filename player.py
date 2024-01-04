@@ -579,6 +579,7 @@ class Player(Board):
 
         self._board = convert_board(self.board)
         self.hive = set(self.nonempty_cells)
+        self.__cycles_need_update = True
 
         if self.myMove == 0:
             if not self.hive:
@@ -1029,13 +1030,16 @@ class Player(Board):
 
         if self.is_empty(cell):
             self.hive.remove(cell)
+            self.__cycles_need_update = True
 
         return piece
 
     def add_piece_to_board(self, cell: Cell, piece: str) -> None:
         """Place the given piece at the given cell."""
         self[cell].append(piece)
-        self.hive.add(cell)
+        if cell not in self.hive:
+            self.hive.add(cell)
+            self.__cycles_need_update = True
 
     def play_move(self, move: Move) -> None:
         """Play the given move."""
