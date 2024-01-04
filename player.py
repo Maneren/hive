@@ -1069,6 +1069,13 @@ class Player(Board):
         removed = self.remove_piece_from_board(end)
         assert removed == piece
 
+    def set_board(self, board: BoardDataBrute) -> None:
+        """Set the board to the given board."""
+        self.board = board
+        self._board = convert_board(board)
+        self.hive = set(self.nonempty_cells)
+        self.update_cycles()
+
     # allows indexing the board directly using player[cell] or player[p, q]
     def __getitem__(self, cell: Cell) -> list[str]:
         """Return the list of pieces at the given cell."""
