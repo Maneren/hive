@@ -592,6 +592,8 @@ class Player(Board):
 
     def minimax(self, nodes: list[Node], end: float) -> MoveBrute:
         """Run the minimax algorithm on the list of nodes return the best move."""
+        global evaluated
+
         best = nodes[0]
 
         depth = 0
@@ -602,6 +604,7 @@ class Player(Board):
             for node in nodes:
                 if not node.next_depth(self, end, target_player=self.upper):
                     print(f"Searched to depth {depth} ({evaluated} pos): {best.score}")
+                    evaluated = 0
                     return best.move.to_brute(self.upper)
 
             if depth <= 2:
@@ -632,6 +635,7 @@ class Player(Board):
             print(f"Nodes at depth {depth}:\n{nodes_str}")
 
         print(f"Searched to depth {depth} ({evaluated} pos): {best.score}")
+        evaluated = 0
         return best.move.to_brute(self.upper)
 
     def moving_breaks_hive(self, cell: Cell) -> bool:
