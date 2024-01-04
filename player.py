@@ -580,10 +580,6 @@ class Player(Board):
 
         if TEST:
             possible_moves = list(self.valid_moves)
-
-            if not possible_moves:
-                return []
-
             return choice(possible_moves).to_brute(self.upper) if possible_moves else []
 
         nodes = [Node(move, self) for move in self.valid_moves]
@@ -631,8 +627,6 @@ class Player(Board):
                 break
 
             best = max(nodes)
-            nodes_str = "\n".join(map(str, nodes))
-            print(f"Nodes at depth {depth}:\n{nodes_str}")
 
         print(f"Searched to depth {depth} ({evaluated} pos): {best.score}")
         evaluated = 0
