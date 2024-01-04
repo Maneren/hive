@@ -150,6 +150,7 @@ def evaluate_cell(
     cell: Cell,
     *,
     target_player: bool,
+    rivals_queen: Cell | None = None,
 ) -> tuple[int, State]:
     """
     Evaluate the given cell from the POV of the given player.
@@ -173,6 +174,8 @@ def evaluate_cell(
         target_player=target_player,
         only_my=piece in {Piece.Beetle, Piece.Queen},
     )
+    if rivals_queen:
+        score -= 5 * player.distance(*cell, *rivals_queen)
 
     if piece == Piece.Beetle:
         score += check_beetle_blocking(
@@ -206,12 +209,28 @@ def evaluate_position(player: Player, *, target_player: bool) -> tuple[int, Stat
 
     score = 0
 
+    rivals_queen_str = Piece.Queen.upper() if not target_player else Piece.Queen.lower()
+
+    rivals_queen = next(
+        (cell for cell in player.hive if rivals_queen_str in player[cell]),
+        None,
+    )
+
     for cell in player.hive:
-        piece_score, game_state = evaluate_cell(
-            player,
-            cell,
-            target_player=target_player,
-        )
+        if player.is_my_cell(cell, target_player):
+            piece_score, game_state = evaluate_cell(
+                player,
+                cell,
+                target_player=target_player,
+                rivals_queen=rivals_queen,
+            )
+        else:
+            piece_score, game_state = evaluate_cell(
+                player,
+                cell,
+                target_player=target_player,
+                rivals_queen=None,
+            )
         if game_state:
             return piece_score, game_state
         score += piece_score
