@@ -746,8 +746,10 @@ class Player(Board):
 
             move = functools.partial(Move, Piece.Beetle, beetle)
 
-            yield from map(
-                move, self.valid_steps(beetle, can_crawl_over=True, can_leave_hive=True)
+            yield from (
+                move(neighbor)
+                for neighbor in self.neighboring_cells(beetle)
+                if self.has_neighbor(neighbor)
             )
 
     def grasshoppers_moves(self, grasshopper: Cell) -> Iterator[Move]:
@@ -850,7 +852,6 @@ class Player(Board):
         self,
         cell: Cell,
         *,
-        can_crawl_over: bool = False,
         can_leave_hive: bool = False,
     ) -> Iterator[Cell]:
         """
@@ -860,11 +861,10 @@ class Player(Board):
         """
         return (
             neighbor
-            for neighbor in self.neighboring_cells(cell)
+            for neighbor in self.empty_neighboring_cells(cell)
             if self.can_move_to(
                 cell,
                 neighbor,
-                can_crawl_over=can_crawl_over,
                 can_leave_hive=can_leave_hive,
             )
         )
@@ -1034,19 +1034,15 @@ class Player(Board):
         origin: Cell,
         target: Cell,
         *,
-        can_crawl_over: bool = False,
         can_leave_hive: bool = False,
     ) -> bool:
         """
         Check if a piece can move from (p,q) to (np,nq).
 
-        When `can_crawl_over` is True, occupied cells are also considered reachable and
-        blocking is ignored.
+        That from the cells besides the move path must be at least one empty
+        and that the target is a nighbor of the hive. Furtermore, if piece
+        can't leave hive, it must neighbor the hive at all times during the move.
         """
-        # if target is not empty and can't crawl over, can't move
-        if not self.is_empty(target) and not can_crawl_over:
-            return False
-
         p, q = origin
         np, nq = target
 
@@ -1058,31 +1054,17 @@ class Player(Board):
         left = (p + lp, q + lq)
         right = (p + rp, q + rq)
 
-        # line by line:
-        # left is part of the hive or
-        # right is part of the hive or
-        # can leave the hive and the target cell neighbors hive
-        # if can crawl over else
-        # not at the edge of board and (
-        #   left or right is part of the hive and the other one is empty
-        #   or
-        #   can leave the hive and the target cell neighbors hive
-        # )
+        # both cells must be in board
+        if not (self.in_board(left) and self.in_board(right)):
+            return False
 
-        return (
-            (self.in_board(left) and not self.is_empty(left))
-            or (self.in_board(right) and not self.is_empty(right))
-            or (can_leave_hive and self.has_neighbor(target))
-            if can_crawl_over
-            else (self.in_board(left) and self.in_board(right))
-            and (
-                self.is_empty(left) != self.is_empty(right)
-                or (
-                    can_leave_hive
-                    and self.has_neighbor(target)
-                    and not (self.is_empty(left) and self.is_empty(right))
-                )
-            )
+        left_empty = self.is_empty(left)
+        right_empty = self.is_empty(right)
+
+        # one has to be empty and the other full
+        return left_empty != right_empty or (
+            # or if both are empty, try to jump
+            left_empty and right_empty and can_leave_hive and self.has_neighbor(target)
         )
 
     def remove_piece_from_board(self, cell: Cell) -> str:
