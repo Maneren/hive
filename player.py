@@ -696,10 +696,9 @@ class Player(Board):
         if neighbor_groups == 1:
             return False
 
-        if self.__cycles_need_update:
-            self.update_cycles()
+        in_cycle = self.is_in_cycle(cell)
 
-        return not self.is_in_cycle(cell)
+        return neighbor_groups != 2 if in_cycle else True
 
     def queens_moves(self, queen: Cell) -> Iterator[Move]:
         """
@@ -952,7 +951,7 @@ class Player(Board):
 
             return None
 
-        if not self.hive or len(self.hive) <= 6:
+        if len(self.hive) <= 6:
             return
 
         self.__cycles_need_update = False
@@ -981,6 +980,8 @@ class Player(Board):
 
     def is_in_cycle(self, cell: Cell) -> bool:
         """Check if cell is in a cycle."""
+        if self.__cycles_need_update:
+            self.update_cycles()
         return any(cell in cycle for cycle in self.cycles)
 
     def top_piece_in(self, cell: Cell) -> str:
