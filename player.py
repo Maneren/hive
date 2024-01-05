@@ -480,7 +480,7 @@ class Player(Board):
         """
         super().__init__(my_is_upper, size, my_pieces, rival_pieces)
         self.playerName = player_name
-        self.algorithmName = "maneren"
+        self.algorithmName = "Maneren v1.1"
         self._board = convert_board(self.board)
         self.hive = set(self.nonempty_cells)
         self.cycles = []
