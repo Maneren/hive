@@ -117,7 +117,7 @@ def calculate_blocking_score(
     if not neighbor or next(neighbors, None) is not None:
         return 0
 
-    if not player.is_my_cell(neighbor, target_player):
+    if not player.is_target_cell(neighbor, target_player):
         return table[Criteria.BLOCKING_RIVAL] if not only_my else 0
 
     return table[Criteria.BLOCKING_FRIEND]
@@ -149,6 +149,7 @@ def calculate_beetle_blocking_score(
 def evaluate_cell(
     player: Player,
     cell: Cell,
+    pieces: list[str],
     *,
     target_player: bool,
     rivals_queen: Cell | None = None,
@@ -159,7 +160,7 @@ def evaluate_cell(
     Uses the evaluation tables `EVAL_TABLE_MY` and `EVAL_TABLE_RIVAL`,
     following the evaluation criteria in `Criteria`
     """
-    top_piece = player.top_piece_in(cell)
+    top_piece = pieces[-1]
     piece_is_upper = top_piece.isupper()
     my = piece_is_upper == target_player
     piece = Piece.from_str(top_piece)
@@ -182,8 +183,8 @@ def evaluate_cell(
         score -= 20 * player.distance(*cell, *rivals_queen)
 
     if piece == Piece.Beetle:
-            player[cell],
         score += calculate_beetle_blocking_score(
+            pieces,
             table,
             target_player=target_player,
         )
@@ -217,29 +218,26 @@ def evaluate_position(player: Player, *, target_player: bool) -> tuple[int, Stat
 
     score = 0
 
-    for cell in player.hive:
-        if player.is_my_cell(cell, target_player):
+    for cell, pieces in player._board.items():
+        rivals_queen = None
+
+        if player.is_target_cell(cell, target_player):
             rivals_queen_str = (
-                Piece.Queen.upper() if not target_player else Piece.Queen.lower()
+                Piece.Queen.lower() if target_player else Piece.Queen.upper()
             )
 
             rivals_queen = next(
-                (cell for cell in player.hive if rivals_queen_str in player[cell]),
+                (c for c, p in player._board.items() if rivals_queen_str in p),
                 None,
             )
-            piece_score, game_state = evaluate_cell(
-                player,
-                cell,
-                target_player=target_player,
-                rivals_queen=rivals_queen,
-            )
-        else:
-            piece_score, game_state = evaluate_cell(
-                player,
-                cell,
-                target_player=target_player,
-                rivals_queen=None,
-            )
+
+        piece_score, game_state = evaluate_cell(
+            player,
+            cell,
+            pieces,
+            target_player=target_player,
+            rivals_queen=rivals_queen,
+        )
 
         if game_state.is_end():
             return piece_score, game_state
@@ -991,14 +989,16 @@ class Player(Board):
         piece_str = piece.upper() if self.upper else piece.lower()
         return self.myPieces[piece_str]
 
-    def is_my_cell(self, cell: Cell, target_player: bool | None = None) -> bool:
+    def is_my_cell(self, cell: Cell) -> bool:
         """Check if (p,q) is a cell owned by the player."""
         piece = self.top_piece_in(cell)
 
-        if target_player is None:
-            target_player = self.upper
+        return piece.isupper() == self.upper  # or piece.islower() != target_player
 
-        return piece.isupper() == target_player or piece.islower() != target_player
+    def is_target_cell(self, cell: Cell, target_player: bool) -> bool:
+        """Check if (p,q) is a cell owned by the target player."""
+        piece = self.top_piece_in(cell)
+        return piece.isupper() == target_player
 
     def is_empty(self, cell: Cell) -> bool:
         """Check if (p,q) is an empty cell."""
