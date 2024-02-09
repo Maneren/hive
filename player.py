@@ -684,7 +684,7 @@ class Player(Board):
 
             for node in nodes:
                 if not node.next_depth(self, end, target_player=self.upper):
-                    return best, depth - 1
+                    return max(nodes), depth
 
             if depth <= 2:
                 limit = len(nodes)
