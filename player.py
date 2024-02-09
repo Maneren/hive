@@ -470,7 +470,6 @@ class Player(Board):
     """
 
     _board: BoardData
-    hive: set[Cell]
     cycles: list[set[Cell]]
     __cached_cycles: dict[int, list[set[Cell]]]
     __cycles_need_update: bool
@@ -492,7 +491,6 @@ class Player(Board):
         self.playerName = player_name
         self.algorithmName = "Maneren v1.1"
         self._board = convert_board(self.board)
-        self.hive = set(self.nonempty_cells)
         self.cycles = []
         self.__cached_cycles = {}
         self.__cycles_need_update = True
@@ -519,16 +517,13 @@ class Player(Board):
 
     @property
     def my_pieces_on_board(self) -> Iterator[tuple[Piece, Cell]]:
-        """
-        Iterator over all my pieces on the board.
-
-        Uses self.hive directly.
-        """
-        return (
-            (Piece.from_str(self.top_piece_in(cell)), cell)
-            for cell in self.hive
+        """Iterator over all my pieces on the board."""
+        board_contents = [
+            (cell, pieces)
+            for cell, pieces in self._board.items()
             if self.is_my_cell(cell)
-        )
+        ]
+        return ((Piece.from_str(pieces[-1]), cell) for cell, pieces in board_contents)
 
     @property
     def my_placable_pieces(self) -> Iterator[Piece]:
@@ -539,11 +534,7 @@ class Player(Board):
 
     @property
     def my_movable_pieces(self) -> Iterator[tuple[Piece, Cell]]:
-        """
-        Iterator over all my movable pieces.
-
-        Uses self.hive transitively.
-        """
+        """Iterator over all my movable pieces."""
         return (
             (piece, cell)
             for piece, cell in self.my_pieces_on_board
@@ -555,7 +546,7 @@ class Player(Board):
         """
         Iterator over all valid placements.
 
-        Uses self.hive transitively and expects at least one piece to be already placed
+        Expects at least one piece to be already placed
         """
         return (
             cell
@@ -565,11 +556,7 @@ class Player(Board):
 
     @property
     def valid_moves(self) -> Iterator[Move]:
-        """
-        Iterator over all valid moves.
-
-        Uses self.hive transitively
-        """
+        """Iterator over all valid moves."""
         mapping = {
             Piece.Ant: self.ants_moves,
             Piece.Queen: self.queens_moves,
@@ -602,7 +589,6 @@ class Player(Board):
             for move in mapping[piece](cell)
         )
 
-
         return chain(place_iter, move_iter) if self.myMove >= 4 else place_iter
 
     @property
@@ -610,7 +596,7 @@ class Player(Board):
         """Set of all cells around the hive."""
         return {
             neighbor
-            for cell in self.hive
+            for cell in self._board
             for neighbor in self.empty_neighboring_cells(cell)
         }
 
@@ -618,7 +604,7 @@ class Player(Board):
         """
         Return a best move for the current self.board.
 
-        Has to first properly initialize the inner state - self._board and self.hive.
+        Has to first properly initialize self._board.
 
         Format:
             [piece, oldP, oldQ, newP, newQ] - move from (oldP, oldQ) to (newP, newQ)
@@ -630,11 +616,10 @@ class Player(Board):
         end = time.perf_counter() + 0.95
 
         self._board = convert_board(self.board)
-        self.hive = set(self.nonempty_cells)
         self.__cycles_need_update = True
 
         if self.myMove == 0:
-            if not self.hive:
+            if not self._board:
                 return Move(Piece.Spider, None, (3, 6)).to_brute(self.upper)
 
             placement = choice(list(self.cells_around_hive))
@@ -880,16 +865,16 @@ class Player(Board):
         first = next(neighbors)
 
         groups = 0
-        in_group = first in self.hive
+        in_group = first in self._board
 
         for neighbor in neighbors:
-            if neighbor in self.hive:
+            if neighbor in self._board:
                 in_group = True
             elif in_group:
                 in_group = False
                 groups += 1
 
-        if in_group and first not in self.hive:
+        if in_group and first not in self._board:
             groups += 1
 
         return groups
@@ -958,12 +943,18 @@ class Player(Board):
 
             return None
 
-        if len(self.hive) <= 6:
+        if len(self._board) <= 6:
             return
 
         self.__cycles_need_update = False
 
-        hashed = hash(tuple(self.hive))
+        hashed = 0
+        for cell in self._board:
+            for n in cell:
+                hashed <<= 5
+                hashed ^= n
+                hashed *= 0x27220A95
+                hashed %= 2**32
 
         if hashed in self.__cached_cycles:
             self.cycles = self.__cached_cycles[hashed]
@@ -971,7 +962,7 @@ class Player(Board):
 
         self.cycles = []
 
-        for cell in self.hive:
+        for cell in self._board:
             if self.neighbor_groups(cell) != 2:
                 continue
 
@@ -1051,10 +1042,6 @@ class Player(Board):
         left = (p + lp, q + lq)
         right = (p + rp, q + rq)
 
-        # both cells must be in board
-        if not (self.in_board(left) and self.in_board(right)):
-            return False
-
         left_empty = self.is_empty(left)
         right_empty = self.is_empty(right)
 
@@ -1066,20 +1053,22 @@ class Player(Board):
 
     def remove_piece_from_board(self, cell: Cell) -> str:
         """Remove the top-most piece at the given cell and return it."""
-        piece = self[cell].pop()
+        pieces = self[cell]
+        piece = pieces.pop()
 
-        if self.is_empty(cell):
-            self.hive.remove(cell)
+        if not pieces:
+            self._board.pop(cell, None)
             self.__cycles_need_update = True
 
         return piece
 
     def add_piece_to_board(self, cell: Cell, piece: str) -> None:
         """Place the given piece at the given cell."""
-        self[cell].append(piece)
-        if cell not in self.hive:
-            self.hive.add(cell)
+        if cell not in self._board:
+            self[cell] = [piece]
             self.__cycles_need_update = True
+        else:
+            self[cell].append(piece)
 
     def play_move(self, move: Move) -> None:
         """Play the given move."""
@@ -1113,7 +1102,6 @@ class Player(Board):
         """Set the board to the given board."""
         self.board = board
         self._board = convert_board(board)
-        self.hive = set(self.nonempty_cells)
         self.update_cycles()
 
         base = {
@@ -1131,8 +1119,8 @@ class Player(Board):
             rival_pieces = {piece.upper(): count for piece, count in base.items()}
             my_pieces = {piece.lower(): count for piece, count in base.items()}
 
-        for cell in self.hive:
-            for piece in self[cell]:
+        for value in self._board.values():
+            for piece in value:
                 if piece in my_pieces:
                     my_pieces[piece] -= 1
                 else:
