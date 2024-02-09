@@ -20,7 +20,7 @@ TEST = False
 
 # PUT ALL YOUR IMPLEMENTATION INTO THIS FILE
 
-type BoardData = dict[int, dict[int, list[str]]]
+type BoardData = dict[Cell, list[str]]
 type BoardDataBrute = dict[int, dict[int, str]]
 type Cell = tuple[int, int]
 type Direction = tuple[int, int]
@@ -69,7 +69,12 @@ def convert_board(board: BoardDataBrute) -> BoardData:
 
     Utilizes lists instead of strings for faster manipulations.
     """
-    return {p: {q: list(board[p][q]) for q in board[p]} for p in board}
+    return {
+        (p, q): list(value)
+        for p, row in board.items()
+        for q, value in row.items()
+        if value
+    }
 
 
 class Criteria(IntEnum):
@@ -505,7 +510,7 @@ class Player(Board):
     @property
     def cells(self) -> Iterator[Cell]:
         """Iterator over all cells."""
-        return ((p, q) for p in self.board for q in self.board[p])
+        return ((p, q) for p in range(self.size) for q in range(-p, self.size))
 
     @property
     def empty_cells(self) -> Iterator[Cell]:
@@ -515,7 +520,7 @@ class Player(Board):
     @property
     def nonempty_cells(self) -> Iterator[Cell]:
         """Iterator over all nonempty cells."""
-        return (cell for cell in self.cells if not self.is_empty(cell))
+        return (cell for cell in self._board if not self.is_empty(cell))
 
     @property
     def my_pieces_on_board(self) -> Iterator[tuple[Piece, Cell]]:
@@ -1005,7 +1010,7 @@ class Player(Board):
 
     def is_my_cell(self, cell: Cell, target_player: bool | None = None) -> bool:
         """Check if (p,q) is a cell owned by the player."""
-        piece = self[cell][-1]
+        piece = self.top_piece_in(cell)
 
         if target_player is None:
             target_player = self.upper
@@ -1014,13 +1019,11 @@ class Player(Board):
 
     def is_empty(self, cell: Cell) -> bool:
         """Check if (p,q) is an empty cell."""
-        return not self[cell]
+        return cell not in self._board or not self._board[cell]
 
     def in_board(self, cell: Cell) -> bool:
         """Check if (p,q) is a valid coordinate within the board."""
         p, q = cell
-        return 0 <= q < self.size and -(q // 2) <= p < self.size - q // 2
-
     def rotate_left(self, direction: Direction) -> Direction:
         """Return direction rotated one tile to left."""
         p, q = direction
@@ -1030,6 +1033,7 @@ class Player(Board):
         """Return direction rotated one tile to right."""
         p, q = direction
         return -q, p + q
+        return 0 <= q < self.size and 0 <= p + q // 2 < self.size
 
     def neighbors_only_my_pieces(self, cell: Cell) -> bool:
         """Check if all neighbors of (p,q) are owned by the player."""
@@ -1154,16 +1158,15 @@ class Player(Board):
         self.myPieces = my_pieces
         self.rivalPieces = rival_pieces
 
+    # the following methods
     # allows indexing the board directly using player[cell] or player[p, q]
     def __getitem__(self, cell: Cell) -> list[str]:
         """Return the list of pieces at the given cell."""
-        p, q = cell
-        return self._board[p][q]
+        return self._board[cell]
 
-    def __setitem__(self, cell: Cell, value: str | list[str]) -> None:
+    def __setitem__(self, cell: Cell, value: list[str]) -> None:
         """Set the list of pieces at the given cell."""
-        p, q = cell
-        self._board[p][q] = value if isinstance(value, list) else list(value)
+        self._board[cell] = value
 
     def __str__(self) -> str:
         """Return a string representation of the board."""
