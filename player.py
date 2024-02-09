@@ -847,19 +847,11 @@ class Player(Board):
 
     def empty_neighboring_cells(self, cell: Cell) -> Iterator[Cell]:
         """Return an iterator over all cells neighboring (p,q) that are empty."""
-        return (
-            neighbor
-            for neighbor in self.neighboring_cells(cell)
-            if self.is_empty(neighbor)
-        )
+        return filter(self.is_empty, self.neighboring_cells(cell))
 
     def neighbors(self, cell: Cell) -> Iterator[Cell]:
         """Return an iterator over all cells neighboring (p,q) that aren't empty."""
-        return (
-            neighbor
-            for neighbor in self.neighboring_cells(cell)
-            if not self.is_empty(neighbor)
-        )
+        return filter(self.isnt_empty, self.neighboring_cells_unchecked(cell))
 
     def valid_steps(
         self,
@@ -1028,7 +1020,7 @@ class Player(Board):
 
     def neighbors_only_my_pieces(self, cell: Cell) -> bool:
         """Check if all neighbors of (p,q) are owned by the player."""
-        return all(self.is_my_cell(neighbor) for neighbor in self.neighbors(cell))
+        return all(map(self.is_my_cell, self.neighbors(cell)))
 
     def has_neighbor(self, cell: Cell) -> bool:
         """Check if (p,q) has a neighbor."""
