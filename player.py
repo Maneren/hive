@@ -77,6 +77,18 @@ def convert_board(board: BoardDataBrute) -> BoardData:
     }
 
 
+def rotate_left(direction: Direction) -> Direction:
+    """Return direction rotated one tile to left."""
+    p, q = direction
+    return p + q, -p
+
+
+def rotate_right(direction: Direction) -> Direction:
+    """Return direction rotated one tile to right."""
+    p, q = direction
+    return -q, p + q
+
+
 class Criteria(IntEnum):
     """
     Criteria for the evaluation function.
@@ -1024,15 +1036,6 @@ class Player(Board):
     def in_board(self, cell: Cell) -> bool:
         """Check if (p,q) is a valid coordinate within the board."""
         p, q = cell
-    def rotate_left(self, direction: Direction) -> Direction:
-        """Return direction rotated one tile to left."""
-        p, q = direction
-        return p + q, -p
-
-    def rotate_right(self, direction: Direction) -> Direction:
-        """Return direction rotated one tile to right."""
-        p, q = direction
-        return -q, p + q
         return 0 <= q < self.size and 0 <= p + q // 2 < self.size
 
     def neighbors_only_my_pieces(self, cell: Cell) -> bool:
@@ -1062,8 +1065,8 @@ class Player(Board):
 
         direction = (np - p, nq - q)
 
-        lp, lq = self.rotate_left(direction)
-        rp, rq = self.rotate_right(direction)
+        lp, lq = rotate_left(direction)
+        rp, rq = rotate_right(direction)
 
         left = (p + lp, q + lq)
         right = (p + rp, q + rq)
