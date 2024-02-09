@@ -384,7 +384,7 @@ class Node:
 
         with play_move(player, self.move):
             if self.depth == 1:
-                self.score, self.end = evaluate_position(
+                self.score, self.state = evaluate_position(
                     self.player,
                     target_player=target_player,
                 )
