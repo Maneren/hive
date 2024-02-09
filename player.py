@@ -709,12 +709,6 @@ class Player(Board):
             if not nodes:
                 break
 
-            if self.my_piece_remaining(Piece.Queen) > 0:
-                for node in nodes:
-                    if node.move.piece == Piece.Queen:
-                        node.score += 100
-                        break
-
             best = max(nodes)
 
         return best, depth
