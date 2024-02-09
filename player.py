@@ -1004,6 +1004,10 @@ class Player(Board):
         """Check if (p,q) is an empty cell."""
         return cell not in self._board or not self._board[cell]
 
+    def isnt_empty(self, cell: Cell) -> bool:
+        """Check if (p,q) is not an empty cell."""
+        return cell in self._board and bool(self._board[cell])
+
     def in_board(self, cell: Cell) -> bool:
         """Check if (p,q) is a valid coordinate within the board."""
         p, q = cell
