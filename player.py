@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from enum import Enum, IntEnum
 from itertools import chain, count, islice
 from random import choice
-from typing import Any, Callable, Iterator
+from typing import Any, Iterator
 
 from base import Board
 
@@ -33,22 +33,6 @@ DIRECTIONS = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)]
 def length_of_iter[T](iterator: Iterator[T]) -> int:
     """Count the number of elements in an iterator."""
     return len(tuple(iterator))
-
-
-def floodfill[T](
-    visited: set[Cell],
-    queue: deque[Cell],
-    next_fn: Callable[[Cell], Iterator[Cell]],
-    map_fn: Callable[[Cell], T] = lambda x: x,
-) -> Iterator[T]:
-    """Run floodfill algorithm."""
-    while queue:
-        current = queue.popleft()
-        if current in visited:
-            continue
-        visited.add(current)
-        yield map_fn(current)
-        queue.extend(next_fn(current))
 
 
 def parse_board(string: str) -> BoardDataBrute:
@@ -759,7 +743,13 @@ class Player(Board):
             visited = {ant}
             queue = deque(next_cells(ant))
 
-            yield from floodfill(visited, queue, next_cells, move)
+            while queue:
+                current = queue.popleft()
+                if current in visited:
+                    continue
+                visited.add(current)
+                yield move(current)
+                queue.extend(next_cells(current))
 
     def beetles_moves(self, beetle: Cell) -> Iterator[Move]:
         """
@@ -773,11 +763,7 @@ class Player(Board):
 
             move = functools.partial(Move, Piece.Beetle, beetle)
 
-            yield from (
-                move(neighbor)
-                for neighbor in self.neighboring_cells(beetle)
-                if self.has_neighbor(neighbor)
-            )
+            yield from map(move, filter(self.has_neighbor, self.neighbors(beetle)))
 
     def grasshoppers_moves(self, grasshopper: Cell) -> Iterator[Move]:
         """
