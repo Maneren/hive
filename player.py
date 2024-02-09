@@ -594,6 +594,18 @@ class Player(Board):
             Piece.Spider: self.spiders_moves,
         }
 
+        if self.myMove == 1:
+            return map(
+                functools.partial(Move, Piece.Queen, None),
+                self.valid_placements,
+            )
+
+        if 2 <= self.myMove <= 3:
+            return map(
+                functools.partial(Move, Piece.Ant, None),
+                self.valid_placements,
+            )
+
         place_iter = (
             Move(piece, None, cell)
             for cell in self.valid_placements
@@ -606,11 +618,6 @@ class Player(Board):
             for move in mapping[piece](cell)
         )
 
-        if self.my_piece_remaining(Piece.Queen) > 0 and self.myMove == 3:
-            return map(
-                functools.partial(Move, Piece.Queen, None),
-                self.valid_placements,
-            )
 
         return chain(place_iter, move_iter) if self.myMove >= 4 else place_iter
 
