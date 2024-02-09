@@ -130,8 +130,7 @@ def calculate_beetle_blocking_score(
     target_player: bool,
 ) -> int:
     """Check if the given cell is blocked by a beetle."""
-    if len(pieces) <= 1:
-        return 0
+    assert len(pieces) >= 2
 
     second_piece = pieces[-2]
 
@@ -182,7 +181,7 @@ def evaluate_cell(
     if rivals_queen:
         score -= 20 * player.distance(*cell, *rivals_queen)
 
-    if piece == Piece.Beetle:
+    if piece == Piece.Beetle and len(pieces) > 1:
         score += calculate_beetle_blocking_score(
             pieces,
             table,
