@@ -1017,6 +1017,20 @@ class Player(Board):
         """Check if (p,q) has a neighbor."""
         return any(self.neighbors(cell))
 
+    def has_neighbor_in_direction(self, cell: Cell, direction: Direction) -> bool:
+        """Check if (p,q) has a neighbors in given direction."""
+        p, q = cell
+        dp, dq = direction
+
+        lp, lq = rotate_left(direction)
+        rp, rq = rotate_right(direction)
+
+        left = (p + lp, q + lq)
+        right = (p + rp, q + rq)
+        center = p + dp, q + dq
+
+        return not all(map(self.is_empty, [left, right, center]))
+
     def can_move_to(
         self,
         origin: Cell,
@@ -1048,7 +1062,10 @@ class Player(Board):
         # one has to be empty and the other full
         return left_empty != right_empty or (
             # or if both are empty, try to jump
-            left_empty and right_empty and can_leave_hive and self.has_neighbor(target)
+            left_empty
+            and right_empty
+            and can_leave_hive
+            and self.has_neighbor_in_direction(target, direction)
         )
 
     def remove_piece_from_board(self, cell: Cell) -> str:
