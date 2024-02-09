@@ -955,7 +955,9 @@ class Player(Board):
                             visited_from[neighbor] = cell
                             continue
 
-                        if visited_from[cell] == neighbor:
+                        cell_visited_from = visited_from[cell]
+
+                        if not cell_visited_from or cell_visited_from == neighbor:
                             continue
 
                         part1 = collect_path(neighbor, visited_from)
