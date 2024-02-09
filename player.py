@@ -130,13 +130,13 @@ def check_blocking(
     neighbors = player.neighbors(cell)
     neighbor = next(neighbors, None)
 
-    if neighbor and next(neighbors, None) is None:
-        if not player.is_my_cell(neighbor, target_player):
-            return table[Criteria.BLOCKING_RIVAL] if not only_my else 0
+    if not neighbor or next(neighbors, None) is not None:
+        return 0
 
-        return table[Criteria.BLOCKING_FRIEND]
+    if not player.is_my_cell(neighbor, target_player):
+        return table[Criteria.BLOCKING_RIVAL] if not only_my else 0
 
-    return 0
+    return table[Criteria.BLOCKING_FRIEND]
 
 
 def check_beetle_blocking(
