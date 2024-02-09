@@ -97,8 +97,8 @@ class Criteria(IntEnum):
     """Piece (other than queen and beetle) has only one neighbor - friend"""
 
 
-EVAL_TABLE_MY = [1, -500, 200, 1000, -400, -1000000, -400, 200, -50]
-EVAL_TABLE_RIVAL = [-1, 600, -200, -800, 400, 1000000, 400, -100, 50]
+EVAL_TABLE_MY = [-1, -500, 200, 1000, -400, -1000000, -400, 200, -50]
+EVAL_TABLE_RIVAL = [0, 600, -200, -800, 500, 1000000, 400, -100, 50]
 
 
 def check_blocking(
