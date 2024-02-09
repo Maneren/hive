@@ -230,6 +230,9 @@ def evaluate_position(player: Player, *, target_player: bool) -> tuple[int, Stat
                 None,
             )
 
+            if rivals_queen:
+                score -= player.distance(*cell, *rivals_queen)
+
         piece_score, game_state = evaluate_cell(
             player,
             cell,
