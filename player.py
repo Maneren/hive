@@ -102,7 +102,7 @@ EVAL_TABLE_MY = [-1, -500, 200, 1000, -400, -1000000, -400, 200, -50]
 EVAL_TABLE_RIVAL = [0, 600, -200, -800, 500, 1000000, 400, -100, 50]
 
 
-def check_blocking(
+def calculate_blocking_score(
     player: Player,
     cell: Cell,
     table: list[int],
@@ -123,7 +123,7 @@ def check_blocking(
     return table[Criteria.BLOCKING_FRIEND]
 
 
-def check_beetle_blocking(
+def calculate_beetle_blocking_score(
     pieces: list[str],
     table: list[int],
     *,
@@ -168,7 +168,7 @@ def evaluate_cell(
 
     score = table[Criteria.BASE]
 
-    blocking_score = check_blocking(
+    blocking_score = calculate_blocking_score(
         player,
         cell,
         table,
@@ -182,8 +182,8 @@ def evaluate_cell(
         score -= 20 * player.distance(*cell, *rivals_queen)
 
     if piece == Piece.Beetle:
-        score += check_beetle_blocking(
             player[cell],
+        score += calculate_beetle_blocking_score(
             table,
             target_player=target_player,
         )
