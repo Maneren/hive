@@ -1017,14 +1017,11 @@ class Player(Board):
 
     def is_my_cell(self, cell: Cell) -> bool:
         """Check if (p,q) is a cell owned by the player."""
-        piece = self.top_piece_in(cell)
-
-        return piece.isupper() == self.upper  # or piece.islower() != target_player
+        return self[cell][-1].isupper() == self.upper
 
     def is_target_cell(self, cell: Cell, target_player: bool) -> bool:
         """Check if (p,q) is a cell owned by the target player."""
-        piece = self.top_piece_in(cell)
-        return piece.isupper() == target_player
+        return self[cell][-1].isupper() == target_player
 
     def is_empty(self, cell: Cell) -> bool:
         """Check if (p,q) is an empty cell."""
