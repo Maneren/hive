@@ -461,7 +461,6 @@ class Node:
 @contextmanager
 def lift_piece(player: Player, cell: Cell) -> Iterator[str]:
     """Lifts a piece from the board for the duration of the context."""
-    # ^ single line docstrings should fit on one line, as per PEP 257
     piece = player.remove_piece_from_board(cell)
     yield piece
     player.add_piece_to_board(cell, piece)
