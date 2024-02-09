@@ -1145,10 +1145,11 @@ class Player(Board):
             my_pieces = {piece.lower(): count for piece, count in base.items()}
 
         for cell in self.hive:
-            if self.is_my_cell(cell):
-                my_pieces[self[cell][0]] -= 1
-            else:
-                rival_pieces[self[cell][0]] -= 1
+            for piece in self[cell]:
+                if piece in my_pieces:
+                    my_pieces[piece] -= 1
+                else:
+                    rival_pieces[piece] -= 1
 
         self.myPieces = my_pieces
         self.rivalPieces = rival_pieces
