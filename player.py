@@ -113,7 +113,7 @@ def check_blocking(
     neighbors = player.neighbors(cell)
     neighbor = next(neighbors, None)
 
-    if neighbor and not next(neighbors, None):
+    if neighbor and next(neighbors, None) is None:
         if not player.is_my_cell(neighbor, target_player):
             return table[Criteria.BLOCKING_RIVAL] if not only_my else 0
 
@@ -126,7 +126,7 @@ def check_beetle_blocking(
     pieces: list[str],
     table: list[int],
     *,
-    piece_is_upper: bool,
+    target_player: bool,
 ) -> int:
     """Check if the given cell is blocked by a beetle."""
     if len(pieces) <= 1:
@@ -134,7 +134,7 @@ def check_beetle_blocking(
 
     second_piece = pieces[-2]
 
-    if second_piece.isupper() == piece_is_upper:
+    if second_piece.isupper() == target_player:
         return -table[Criteria.BEETLE_BLOCKING]
 
     score = table[Criteria.BEETLE_BLOCKING]
@@ -167,22 +167,26 @@ def evaluate_cell(
 
     score = table[Criteria.BASE]
 
-    score += check_blocking(
+    blocking_score = check_blocking(
         player,
         cell,
         table,
         target_player=target_player,
         only_my=piece in {Piece.Beetle, Piece.Queen},
     )
+
+    score += blocking_score * 2 if piece == Piece.Ant else 1
+
     if rivals_queen:
-        score -= 5 * player.distance(*cell, *rivals_queen)
+        score -= 20 * player.distance(*cell, *rivals_queen)
 
     if piece == Piece.Beetle:
         score += check_beetle_blocking(
             player[cell],
             table,
-            piece_is_upper=piece_is_upper,
+            target_player=target_player,
         )
+        return score, State.RUNNING
 
     if piece == Piece.Queen:
         c = length_of_iter(player.neighbors(cell))
@@ -190,9 +194,12 @@ def evaluate_cell(
         if c == 6:
             return table[Criteria.QUEEN_SURROUNDED], State.LOSS if my else State.WIN
 
-        score = table[Criteria.QUEEN_NEIGHBOR] * (c - 1)
+        if c == 1:
+            return -table[Criteria.QUEEN_NEIGHBOR], State.RUNNING
 
-        if player.moving_breaks_hive(cell):
+        score += table[Criteria.QUEEN_NEIGHBOR] * (c - 1)
+
+        if player.neighbor_groups(cell) != 1:
             score += table[Criteria.QUEEN_BLOCKED]
 
     return score, State.RUNNING
@@ -209,15 +216,16 @@ def evaluate_position(player: Player, *, target_player: bool) -> tuple[int, Stat
 
     score = 0
 
-    rivals_queen_str = Piece.Queen.upper() if not target_player else Piece.Queen.lower()
-
-    rivals_queen = next(
-        (cell for cell in player.hive if rivals_queen_str in player[cell]),
-        None,
-    )
-
     for cell in player.hive:
         if player.is_my_cell(cell, target_player):
+            rivals_queen_str = (
+                Piece.Queen.upper() if not target_player else Piece.Queen.lower()
+            )
+
+            rivals_queen = next(
+                (cell for cell in player.hive if rivals_queen_str in player[cell]),
+                None,
+            )
             piece_score, game_state = evaluate_cell(
                 player,
                 cell,
@@ -231,8 +239,10 @@ def evaluate_position(player: Player, *, target_player: bool) -> tuple[int, Stat
                 target_player=target_player,
                 rivals_queen=None,
             )
-        if game_state:
+
+        if game_state.is_end():
             return piece_score, game_state
+
         score += piece_score
 
     return score, State.RUNNING
@@ -404,8 +414,8 @@ class Node:
         children.sort(reverse=True)
 
         depth = self.depth
-        if depth <= 1:
-            limit = 10
+        if depth <= 2:
+            limit = 8
         elif depth <= 3:
             limit = 5
         elif depth <= 5:
