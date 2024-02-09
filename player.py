@@ -279,6 +279,8 @@ class Move:
     Start is `None` when placing a new piece from reserve.
     """
 
+    __slots__ = ("piece", "start", "end")
+
     piece: Piece
     start: Cell | None
     end: Cell
@@ -333,6 +335,15 @@ class State(IntEnum):
 
 class Node:
     """Node in the minimax tree."""
+
+    __slots__ = (
+        "move",
+        "player",
+        "score",
+        "children",
+        "depth",
+        "state",
+    )
 
     move: Move
     player: Player
@@ -466,6 +477,19 @@ class Player(Board):
     implicitly depends on it. The properties should be independent and stateless,
     unless explicitly specified otherwise in their docstrings.
     """
+
+    __slots__ = (
+        "__board",
+        "cycles",
+        "__cached_cycles",
+        "__cycles_need_update",
+        "size",
+        "myColorIsUpper",
+        "myPieces",
+        "rivalPieces",
+        "playerName",
+        "algorithmName",
+    )
 
     _board: BoardData
     cycles: list[set[Cell]]
