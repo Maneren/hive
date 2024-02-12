@@ -1121,6 +1121,8 @@ class Player(Board):
             # remove the piece from its old position
             removed = self.remove_piece_from_board(start)
             assert removed == piece
+        else:
+            self.myPieces[piece] -= 1
 
         # add the piece to its new position
         self.add_piece_to_board(end, piece)
@@ -1134,6 +1136,8 @@ class Player(Board):
         if start is not None:
             # add the piece back to its old position
             self.add_piece_to_board(start, piece)
+        else:
+            self.myPieces[piece] += 1
 
         # remove the piece from its new position
         removed = self.remove_piece_from_board(end)
