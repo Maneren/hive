@@ -217,28 +217,25 @@ def evaluate_position(player: Player, *, target_player: bool) -> tuple[int, Stat
 
     score = 0
 
+    rivals_queen_str = Piece.Queen.lower() if target_player else Piece.Queen.upper()
+
+    rivals_queen = next(
+        (c for c, p in player._board.items() if rivals_queen_str in p),
+        None,
+    )
+
     for cell, pieces in player._board.items():
-        rivals_queen = None
+        is_target_cell = player.is_target_cell(cell, target_player)
 
-        if player.is_target_cell(cell, target_player):
-            rivals_queen_str = (
-                Piece.Queen.lower() if target_player else Piece.Queen.upper()
-            )
-
-            rivals_queen = next(
-                (c for c, p in player._board.items() if rivals_queen_str in p),
-                None,
-            )
-
-            if rivals_queen:
-                score -= player.distance(*cell, *rivals_queen)
+        if is_target_cell and rivals_queen:
+            score -= player.distance(*cell, *rivals_queen)
 
         piece_score, game_state = evaluate_cell(
             player,
             cell,
             pieces,
             target_player=target_player,
-            rivals_queen=rivals_queen,
+            rivals_queen=rivals_queen if is_target_cell else None,
         )
 
         if game_state.is_end():
