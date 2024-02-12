@@ -491,8 +491,8 @@ class Player(Board):
     )
 
     _board: BoardData
-    cycles: list[set[Cell]]
-    __cached_cycles: dict[int, list[set[Cell]]]
+    cycles: set[Cell]
+    __cached_cycles: dict[int, set[Cell]]
     __cycles_need_update: bool
 
     def __init__(
@@ -512,7 +512,7 @@ class Player(Board):
         self.playerName = player_name
         self.algorithmName = "Maneren v1.1"
         self._board = convert_board(self.board)
-        self.cycles = []
+        self.cycles = set()
         self.__cached_cycles = {}
         self.__cycles_need_update = True
 
@@ -981,19 +981,21 @@ class Player(Board):
             self.cycles = self.__cached_cycles[hashed]
             return
 
-        self.cycles = []
+        self.cycles.clear()
 
         for cell in self._board:
-            if self.neighbor_groups(cell) != 2:
-                continue
-
-            if self.is_in_cycle(cell):
+            if self.neighbor_groups(cell) != 2 or cell in self.cycles:
                 continue
 
             cycle = find_cycle(cell)
 
-            if cycle and cycle not in self.cycles:
-                self.cycles.append(cycle)
+            if not cycle:
+                continue
+
+            if cycle <= self.cycles:
+                continue
+
+            self.cycles.update(cycle)
 
         self.__cached_cycles[hashed] = self.cycles
 
@@ -1001,7 +1003,7 @@ class Player(Board):
         """Check if cell is in a cycle."""
         if self.__cycles_need_update:
             self.update_cycles()
-        return any(cell in cycle for cycle in self.cycles)
+        return cell in self.cycles
 
     def top_piece_in(self, cell: Cell) -> str:
         """Return the top piece in given cell."""
