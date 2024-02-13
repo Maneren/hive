@@ -524,7 +524,11 @@ class Player(Board):
     @property
     def cells(self) -> Iterator[Cell]:
         """Iterator over all cells."""
-        return ((p, q) for p in range(self.size) for q in range(-p, self.size))
+        return (
+            (p, q)
+            for q in range(self.size)
+            for p in range(-(q // 2), self.size - q // 2)
+        )
 
     @property
     def empty_cells(self) -> Iterator[Cell]:
