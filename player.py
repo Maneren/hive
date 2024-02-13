@@ -208,6 +208,13 @@ def evaluate_cell(
 
 evaluated = 0
 
+updates = 0
+cache_hits = 0
+
+found_cycles = 0
+duplicates = 0
+removed = 0
+
 
 def evaluate_position(player: Player, *, target_player: bool) -> tuple[int, State]:
     """Evaluate the position from the POV of the given player."""
@@ -661,9 +668,17 @@ class Player(Board):
 
         best, depth = self.minimax(nodes, end)
 
-        global evaluated
+        global evaluated, cache_hits, updates, found_cycles, duplicates, removed
         print(f"Searched to depth {depth} ({evaluated} pos): {best.score}")
         evaluated = 0
+
+        print(f"Cache size: {len(self.__cached_cycles)}")
+        print(f"Cache hits: {cache_hits} of {updates}")
+
+        print(f"Found cycles: {found_cycles}")
+        print(f"Duplicates: {duplicates}")
+
+        print(f"Removed: {removed}")
 
         return best.move.to_brute(self.upper)
 
@@ -981,7 +996,11 @@ class Player(Board):
                 hashed *= 0x27220A95
                 hashed %= 2**32
 
+        global updates, cache_hits, found_cycles, duplicates
+        updates += 1
+
         if hashed in self.__cached_cycles:
+            cache_hits += 1
             self.cycles = self.__cached_cycles[hashed]
             return
 
@@ -996,7 +1015,10 @@ class Player(Board):
             if not cycle:
                 continue
 
+            found_cycles += 1
+
             if cycle <= self.cycles:
+                duplicates += 1
                 continue
 
             self.cycles.update(cycle)
