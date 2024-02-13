@@ -20,7 +20,7 @@ TEST = False
 
 # PUT ALL YOUR IMPLEMENTATION INTO THIS FILE
 
-type BoardData = dict[Cell, list[str]]
+type BoardData = dict[Cell, list[Piece]]
 type BoardDataBrute = dict[int, dict[int, str]]
 type Cell = tuple[int, int]
 type Direction = tuple[int, int]
@@ -54,7 +54,7 @@ def convert_board(board: BoardDataBrute) -> BoardData:
     Utilizes lists instead of strings for faster manipulations.
     """
     return {
-        (p, q): list(value)
+        (p, q): list(map(Piece.from_str, value))
         for p, row in board.items()
         for q, value in row.items()
         if value
@@ -124,7 +124,7 @@ def calculate_blocking_score(
 
 
 def calculate_beetle_blocking_score(
-    pieces: list[str],
+    pieces: list[Piece],
     table: list[int],
     *,
     target_player: bool,
@@ -134,12 +134,12 @@ def calculate_beetle_blocking_score(
 
     second_piece = pieces[-2]
 
-    if second_piece.isupper() == target_player:
+    if second_piece.upper == target_player:
         return -table[Criteria.BEETLE_BLOCKING]
 
     score = table[Criteria.BEETLE_BLOCKING]
 
-    if second_piece.upper() == Piece.Queen:
+    if second_piece.kind == PieceKind.Queen:
         score += table[Criteria.BEETLE_BLOCKING_QUEEN_BONUS]
 
     return score
@@ -159,10 +159,10 @@ def evaluate_cell(
     Uses the evaluation tables `EVAL_TABLE_MY` and `EVAL_TABLE_RIVAL`,
     following the evaluation criteria in `Criteria`
     """
-    top_piece = pieces[-1]
-    piece_is_upper = top_piece.isupper()
+    piece = pieces[-1]
+    piece_is_upper = piece.upper
     my = piece_is_upper == target_player
-    piece = Piece.from_str(top_piece)
+    piece_kind = piece.kind
 
     table = EVAL_TABLE_MY if my else EVAL_TABLE_RIVAL
 
@@ -173,15 +173,15 @@ def evaluate_cell(
         cell,
         table,
         target_player=target_player,
-        only_my=piece in {Piece.Beetle, Piece.Queen},
+        only_my=piece_kind in {PieceKind.Beetle, PieceKind.Queen},
     )
 
-    score += blocking_score * 2 if piece == Piece.Ant else 1
+    score += blocking_score * 2 if piece_kind == PieceKind.Ant else 1
 
     if rivals_queen:
         score -= 20 * player.distance(*cell, *rivals_queen)
 
-    if piece == Piece.Beetle and len(pieces) > 1:
+    if piece_kind == PieceKind.Beetle and len(pieces) > 1:
         score += calculate_beetle_blocking_score(
             pieces,
             table,
@@ -189,7 +189,7 @@ def evaluate_cell(
         )
         return score, State.RUNNING
 
-    if piece == Piece.Queen:
+    if piece_kind == PieceKind.Queen:
         c = length_of_iter(player.neighbors(cell))
 
         if c == 6:
@@ -224,7 +224,9 @@ def evaluate_position(player: Player, *, target_player: bool) -> tuple[int, Stat
 
     score = 0
 
-    rivals_queen_str = Piece.Queen.lower() if target_player else Piece.Queen.upper()
+    rivals_queen_str = (
+        PieceKind.Queen.lower() if target_player else PieceKind.Queen.upper()
+    )
 
     rivals_queen = next(
         (c for c, p in player._board.items() if rivals_queen_str in p),
@@ -253,8 +255,8 @@ def evaluate_position(player: Player, *, target_player: bool) -> tuple[int, Stat
     return score, State.RUNNING
 
 
-class Piece(str, Enum):
-    """Game pieces."""
+class PieceKind(str, Enum):
+    """Kind of a game piece."""
 
     Queen = "Q"
     Spider = "S"
@@ -263,9 +265,9 @@ class Piece(str, Enum):
     Grasshopper = "G"
 
     @staticmethod
-    def from_str(string: str) -> Piece:
+    def from_str(string: str) -> PieceKind:
         """Convert a string to a `Piece`."""
-        return Piece(string.upper())
+        return PieceKind(string.upper())
 
     # overrides str for little speed bonus, since all are already upper
     def upper(self) -> str:
@@ -278,6 +280,25 @@ class Piece(str, Enum):
 
 
 @dataclass
+class Piece:
+    """Game piece."""
+
+    __slots__ = ("kind", "upper")
+
+    kind: PieceKind
+    upper: bool
+
+    @staticmethod
+    def from_str(string: str) -> Piece:
+        """Convert a string to a `Piece`."""
+        return Piece(PieceKind.from_str(string), string.isupper())
+
+    def __str__(self) -> str:
+        """Return the string representation of the piece."""
+        return self.kind.upper() if self.upper else self.kind.lower()
+
+
+@dataclass
 class Move:
     """
     Holds a move, defined by a piece, start cell and end cell.
@@ -287,7 +308,7 @@ class Move:
 
     __slots__ = ("piece", "start", "end")
 
-    piece: Piece
+    piece: PieceKind
     start: Cell | None
     end: Cell
 
@@ -458,7 +479,7 @@ class Node:
 
 
 @contextmanager
-def lift_piece(player: Player, cell: Cell) -> Iterator[str]:
+def lift_piece(player: Player, cell: Cell) -> Iterator[Piece]:
     """Lifts a piece from the board for the duration of the context."""
     piece = player.remove_piece_from_board(cell)
     yield piece
@@ -548,28 +569,30 @@ class Player(Board):
         return iter(self._board.keys())
 
     @property
-    def my_pieces_on_board(self) -> Iterator[tuple[Piece, Cell]]:
+    def my_pieces_on_board(self) -> Iterator[tuple[Cell, Piece]]:
         """Iterator over all my pieces on the board."""
         board_contents = [
             (cell, pieces)
             for cell, pieces in self._board.items()
             if self.is_my_cell(cell)
         ]
-        return ((Piece.from_str(pieces[-1]), cell) for cell, pieces in board_contents)
+        return ((cell, pieces[-1]) for cell, pieces in board_contents)
 
     @property
-    def my_placable_pieces(self) -> Iterator[Piece]:
+    def my_placable_pieces(self) -> Iterator[PieceKind]:
         """Iterator over all my placable pieces."""
         return (
-            Piece.from_str(piece) for piece, count in self.myPieces.items() if count > 0
+            PieceKind.from_str(piece)
+            for piece, count in self.myPieces.items()
+            if count > 0
         )
 
     @property
-    def my_movable_pieces(self) -> Iterator[tuple[Piece, Cell]]:
+    def my_movable_pieces(self) -> Iterator[tuple[Cell, Piece]]:
         """Iterator over all my movable pieces."""
         return (
-            (piece, cell)
-            for piece, cell in self.my_pieces_on_board
+            (cell, piece)
+            for cell, piece in self.my_pieces_on_board
             if not self.moving_breaks_hive(cell)
         )
 
@@ -590,35 +613,34 @@ class Player(Board):
     def valid_moves(self) -> Iterator[Move]:
         """Iterator over all valid moves."""
         mapping = {
-            Piece.Ant: self.ants_moves,
-            Piece.Queen: self.queens_moves,
-            Piece.Beetle: self.beetles_moves,
-            Piece.Grasshopper: self.grasshoppers_moves,
-            Piece.Spider: self.spiders_moves,
+            PieceKind.Ant: self.ants_moves,
+            PieceKind.Queen: self.queens_moves,
+            PieceKind.Beetle: self.beetles_moves,
+            PieceKind.Grasshopper: self.grasshoppers_moves,
+            PieceKind.Spider: self.spiders_moves,
         }
 
         if self.myMove == 1:
             return map(
-                functools.partial(Move, Piece.Queen, None),
+                functools.partial(Move, PieceKind.Queen, None),
                 self.valid_placements,
             )
 
         if 2 <= self.myMove <= 3:
             return map(
-                functools.partial(Move, Piece.Ant, None),
+                functools.partial(Move, PieceKind.Ant, None),
                 self.valid_placements,
             )
 
         place_iter = (
             Move(piece, None, cell)
-            for cell in self.valid_placements
-            for piece in self.my_placable_pieces
+            for cell, piece in product(self.valid_placements, self.my_placable_pieces)
         )
 
         move_iter = (
             move
-            for piece, cell in self.my_movable_pieces
-            for move in mapping[piece](cell)
+            for cell, piece in self.my_movable_pieces
+            for move in mapping[piece.kind](cell)
         )
 
         return chain(place_iter, move_iter) if self.myMove >= 4 else place_iter
@@ -652,10 +674,10 @@ class Player(Board):
 
         if self.myMove == 0:
             if not self._board:
-                return Move(Piece.Spider, None, (3, 6)).to_brute(self.upper)
+                return Move(PieceKind.Spider, None, (3, 6)).to_brute(self.upper)
 
             placement = choice(list(self.cells_around_hive))
-            return Move(Piece.Spider, None, placement).to_brute(self.upper)
+            return Move(PieceKind.Spider, None, placement).to_brute(self.upper)
 
         if TEST or not self.tournament:
             possible_moves = list(self.valid_moves)
@@ -743,8 +765,8 @@ class Player(Board):
         Queen can move one step in any direction.
         """
         with lift_piece(self, queen) as piece:
-            assert piece.upper() == Piece.Queen, f"{piece} at {queen} is not a Queen"
-            move = functools.partial(Move, Piece.Queen, queen)
+            assert piece.kind == PieceKind.Queen, f"{piece} at {queen} is not a Queen"
+            move = functools.partial(Move, PieceKind.Queen, queen)
             yield from map(move, self.valid_steps(queen, can_leave_hive=True))
 
     def ants_moves(self, ant: Cell) -> Iterator[Move]:
@@ -755,7 +777,7 @@ class Player(Board):
         to the hive.
         """
         with lift_piece(self, ant) as piece:
-            assert piece.upper() == Piece.Ant, f"{piece} at {ant} is not an Ant"
+            assert piece.kind == PieceKind.Ant, f"{piece} at {ant} is not an Ant"
 
             def next_cells(cell: Cell) -> Iterator[Cell]:
                 return (
@@ -764,7 +786,7 @@ class Player(Board):
                     if self.can_move_to(cell, neighbor)
                 )
 
-            move = functools.partial(Move, Piece.Ant, ant)
+            move = functools.partial(Move, PieceKind.Ant, ant)
             visited = {ant}
             queue = deque(next_cells(ant))
 
@@ -784,9 +806,11 @@ class Player(Board):
         on top of other pieces.
         """
         with lift_piece(self, beetle) as piece:
-            assert piece.upper() == Piece.Beetle, f"{piece} at {beetle} is not a Beetle"
+            assert (
+                piece.kind == PieceKind.Beetle
+            ), f"{piece} at {beetle} is not a Beetle"
 
-            move = functools.partial(Move, Piece.Beetle, beetle)
+            move = functools.partial(Move, PieceKind.Beetle, beetle)
 
             yield from map(move, filter(self.has_neighbor, self.neighbors(beetle)))
 
@@ -799,10 +823,10 @@ class Player(Board):
         """
         with lift_piece(self, grasshopper) as piece:
             assert (
-                piece.upper() == Piece.Grasshopper
+                piece.kind == PieceKind.Grasshopper
             ), f"{piece} at {grasshopper} is not a Grasshopper"
 
-            move = functools.partial(Move, Piece.Grasshopper, grasshopper)
+            move = functools.partial(Move, PieceKind.Grasshopper, grasshopper)
 
             # for each direction
             for dp, dq in DIRECTIONS:
@@ -838,9 +862,11 @@ class Player(Board):
         to the hive.
         """
         with lift_piece(self, spider) as piece:
-            assert piece.upper() == Piece.Spider, f"{piece} at {spider} is not a Spider"
+            assert (
+                piece.kind == PieceKind.Spider
+            ), f"{piece} at {spider} is not a Spider"
 
-            move = functools.partial(Move, Piece.Spider, spider)
+            move = functools.partial(Move, PieceKind.Spider, spider)
             visited: set[Cell] = set()
             stack = [spider]
 
@@ -1031,22 +1057,22 @@ class Player(Board):
             self.update_cycles()
         return cell in self.cycles
 
-    def top_piece_in(self, cell: Cell) -> str:
+    def top_piece_in(self, cell: Cell) -> Piece:
         """Return the top piece in given cell."""
         return self[cell][-1]
 
-    def my_piece_remaining(self, piece: Piece) -> int:
+    def my_piece_remaining(self, piece: PieceKind) -> int:
         """Return the number of my pieces of given type."""
         piece_str = piece.upper() if self.upper else piece.lower()
         return self.myPieces[piece_str]
 
     def is_my_cell(self, cell: Cell) -> bool:
         """Check if (p,q) is a cell owned by the player."""
-        return self[cell][-1].isupper() == self.upper
+        return self[cell][-1].upper == self.upper
 
     def is_target_cell(self, cell: Cell, target_player: bool) -> bool:
         """Check if (p,q) is a cell owned by the target player."""
-        return self[cell][-1].isupper() == target_player
+        return self[cell][-1].upper == target_player
 
     def is_empty(self, cell: Cell) -> bool:
         """Check if (p,q) is an empty cell."""
@@ -1120,7 +1146,7 @@ class Player(Board):
             and self.has_neighbor_in_direction(target, direction)
         )
 
-    def remove_piece_from_board(self, cell: Cell) -> str:
+    def remove_piece_from_board(self, cell: Cell) -> Piece:
         """Remove the top-most piece at the given cell and return it."""
         pieces = self._board[cell]
         piece = pieces.pop()
@@ -1131,7 +1157,7 @@ class Player(Board):
 
         return piece
 
-    def add_piece_to_board(self, cell: Cell, piece: str) -> None:
+    def add_piece_to_board(self, cell: Cell, piece: Piece) -> None:
         """Place the given piece at the given cell."""
         if cell not in self._board:
             self._board[cell] = [piece]
@@ -1141,7 +1167,7 @@ class Player(Board):
 
     def play_move(self, move: Move) -> None:
         """Play the given move."""
-        piece = move.piece_str(self.upper)
+        piece = Piece(move.piece, self.upper)
         start = move.start
         end = move.end
 
@@ -1150,14 +1176,14 @@ class Player(Board):
             removed = self.remove_piece_from_board(start)
             assert removed == piece
         else:
-            self.myPieces[piece] -= 1
+            self.myPieces[str(piece)] -= 1
 
         # add the piece to its new position
         self.add_piece_to_board(end, piece)
 
     def reverse_move(self, move: Move) -> None:
         """Reverse the given move."""
-        piece = move.piece_str(self.upper)
+        piece = Piece(move.piece, self.upper)
         start = move.start
         end = move.end
 
@@ -1165,7 +1191,7 @@ class Player(Board):
             # add the piece back to its old position
             self.add_piece_to_board(start, piece)
         else:
-            self.myPieces[piece] += 1
+            self.myPieces[str(piece)] += 1
 
         # remove the piece from its new position
         removed = self.remove_piece_from_board(end)
@@ -1178,47 +1204,61 @@ class Player(Board):
         self.update_cycles()
 
         base = {
-            Piece.Queen: 1,
-            Piece.Ant: 2,
-            Piece.Beetle: 2,
-            Piece.Grasshopper: 2,
-            Piece.Spider: 2,
+            PieceKind.Queen: 1,
+            PieceKind.Ant: 2,
+            PieceKind.Beetle: 2,
+            PieceKind.Grasshopper: 2,
+            PieceKind.Spider: 2,
         }
 
         if self.upper:
-            rival_pieces = {piece.lower(): count for piece, count in base.items()}
-            my_pieces = {piece.upper(): count for piece, count in base.items()}
+            rival_pieces = {
+                piece_kind.lower(): count for piece_kind, count in base.items()
+            }
+            my_pieces = {
+                piece_kind.upper(): count for piece_kind, count in base.items()
+            }
         else:
-            rival_pieces = {piece.upper(): count for piece, count in base.items()}
-            my_pieces = {piece.lower(): count for piece, count in base.items()}
+            rival_pieces = {
+                piece_kind.upper(): count for piece_kind, count in base.items()
+            }
+            my_pieces = {
+                piece_kind.lower(): count for piece_kind, count in base.items()
+            }
 
         for value in self._board.values():
             for piece in value:
-                if piece in my_pieces:
-                    my_pieces[piece] -= 1
+                piece_str = str(piece)
+                if piece_str in my_pieces:
+                    my_pieces[piece_str] -= 1
                 else:
-                    rival_pieces[piece] -= 1
+                    rival_pieces[piece_str] -= 1
 
         self.myPieces = my_pieces
         self.rivalPieces = rival_pieces
 
     # the following methods
     # allows indexing the board directly using player[cell] or player[p, q]
-    def __getitem__(self, cell: Cell) -> list[str]:
+    def __getitem__(self, cell: Cell) -> list[Piece]:
         """Return the list of pieces at the given cell."""
         return self._board[cell]
 
-    def __setitem__(self, cell: Cell, value: list[str]) -> None:
+    def __setitem__(self, cell: Cell, value: list[Piece]) -> None:
         """Set the list of pieces at the given cell."""
+        if cell not in self._board:
+            self.__cycles_need_update = True
         self._board[cell] = value
 
     def __str__(self) -> str:
         """Return a string representation of the board."""
-        return "\n".join(
+
+        def cell_to_str(cell: Cell) -> str:
+            return "".join(map(str, self[cell])) if self.isnt_empty(cell) else "."
+
+        rows = (
             (" " if p % 2 else "")
-            + " ".join(
-                "".join(self._board.get((p, q), ["."]))
-                for q in range(-p, self.size - p)
-            )
+            + " ".join(cell_to_str((p, q)) for q in range(-p, self.size - p))
             for p in range(self.size)
         )
+
+        return "\n".join(rows)
