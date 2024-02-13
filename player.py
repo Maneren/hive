@@ -538,7 +538,7 @@ class Player(Board):
     @property
     def nonempty_cells(self) -> Iterator[Cell]:
         """Iterator over all nonempty cells."""
-        return (cell for cell, value in self._board.items() if value)
+        return iter(self._board.keys())
 
     @property
     def my_pieces_on_board(self) -> Iterator[tuple[Piece, Cell]]:
