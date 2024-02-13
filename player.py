@@ -1192,15 +1192,11 @@ class Player(Board):
 
     def __str__(self) -> str:
         """Return a string representation of the board."""
-        lines = []
-
-        for q in range(self.size):
-            row = [
-                "".join(self[p, q]) or "."
-                for p in range(-self.size, self.size)
-                if self.in_board((p, q))
-            ]
-            offset = " " if q % 2 else ""
-            lines.append(offset + " ".join(row))
-
-        return "\n".join(lines)
+        return "\n".join(
+            (" " if p % 2 else "")
+            + " ".join(
+                "".join(self._board.get((p, q), ["."]))
+                for q in range(-p, self.size - p)
+            )
+            for p in range(self.size)
+        )
