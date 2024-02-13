@@ -1100,7 +1100,7 @@ class Player(Board):
 
     def remove_piece_from_board(self, cell: Cell) -> str:
         """Remove the top-most piece at the given cell and return it."""
-        pieces = self[cell]
+        pieces = self._board[cell]
         piece = pieces.pop()
 
         if not pieces:
@@ -1112,7 +1112,7 @@ class Player(Board):
     def add_piece_to_board(self, cell: Cell, piece: str) -> None:
         """Place the given piece at the given cell."""
         if cell not in self._board:
-            self[cell] = [piece]
+            self._board[cell] = [piece]
             self.__cycles_need_update = True
         else:
             self[cell].append(piece)
