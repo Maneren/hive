@@ -1007,7 +1007,7 @@ class Player(Board):
         self.cycles.clear()
 
         for cell in self._board:
-            if self.neighbor_groups(cell) != 2 or cell in self.cycles:
+            if cell in self.cycles:
                 continue
 
             cycle = find_cycle(cell)
