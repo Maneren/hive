@@ -148,7 +148,7 @@ def calculate_beetle_blocking_score(
 def evaluate_cell(
     player: Player,
     cell: Cell,
-    pieces: list[str],
+    pieces: list[Piece],
     *,
     target_player: bool,
     rivals_queen: Cell | None = None,
