@@ -6,7 +6,7 @@ from collections import deque
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum, IntEnum
-from itertools import chain, count, islice
+from itertools import chain, count, islice, product
 from random import choice
 from typing import Any, Iterator
 
