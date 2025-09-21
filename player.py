@@ -3,12 +3,13 @@ from __future__ import annotations
 import functools
 import time
 from collections import deque
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum, IntEnum
 from itertools import chain, count, islice, product
 from random import choice
-from typing import Any, Iterator
+from typing import Any
 
 from base import Board
 
@@ -306,7 +307,7 @@ class Move:
     Start is `None` when placing a new piece from reserve.
     """
 
-    __slots__ = ("piece", "start", "end")
+    __slots__ = ("end", "piece", "start")
 
     piece: PieceKind
     start: Cell | None
@@ -364,11 +365,11 @@ class Node:
     """Node in the minimax tree."""
 
     __slots__ = (
+        "children",
+        "depth",
         "move",
         "player",
         "score",
-        "children",
-        "depth",
         "state",
     )
 
@@ -507,15 +508,15 @@ class Player(Board):
 
     __slots__ = (
         "__board",
-        "cycles",
         "__cached_cycles",
         "__cycles_need_update",
-        "size",
+        "algorithmName",
+        "cycles",
         "myColorIsUpper",
         "myPieces",
-        "rivalPieces",
         "playerName",
-        "algorithmName",
+        "rivalPieces",
+        "size",
     )
 
     _board: BoardData
@@ -681,6 +682,7 @@ class Player(Board):
 
         if TEST or not self.tournament:
             possible_moves = list(self.valid_moves)
+            print("Possible moves:", "\n".join(map(str, possible_moves)), sep="\n")
             return choice(possible_moves).to_brute(self.upper) if possible_moves else []
 
         nodes = [Node(move, self) for move in self.valid_moves]
@@ -749,14 +751,7 @@ class Player(Board):
         if len(self[cell]) > 1:
             return False
 
-        neighbor_groups = self.neighbor_groups(cell)
-
-        if neighbor_groups == 1:
-            return False
-
-        in_cycle = self.is_in_cycle(cell)
-
-        return neighbor_groups != 2 if in_cycle else True
+        return not self.is_in_cycle(cell)
 
     def queens_moves(self, queen: Cell) -> Iterator[Move]:
         """
@@ -953,62 +948,6 @@ class Player(Board):
         cell is encountered second time, a cycle is detected. If the length of the cycle
         is more than 2 (trio of neighboring cells), the cycle is returned.
         """
-
-        def collect_path(
-            cell: Cell, visited_from: dict[Cell, Cell | None]
-        ) -> list[Cell]:
-            """Collect a path from the given cell."""
-            path = [cell]
-
-            while path[-1] in visited_from:
-                new = visited_from[path[-1]]
-                if not new:
-                    break
-                path.append(new)
-
-            return path
-
-        def find_cycle(start: Cell) -> set[Cell] | None:
-            """Try find a cycle in the hive."""
-            stack = [start]
-
-            visited_from: dict[Cell, Cell | None] = {start: None}
-
-            while stack:
-                new_stack = []
-
-                for cell in stack:
-                    for neighbor in self.neighbors(cell):
-                        if neighbor not in visited_from:
-                            new_stack.append(neighbor)
-                            visited_from[neighbor] = cell
-                            continue
-
-                        cell_visited_from = visited_from[cell]
-
-                        if not cell_visited_from or cell_visited_from == neighbor:
-                            continue
-
-                        part1 = collect_path(neighbor, visited_from)
-                        part2 = collect_path(cell, visited_from)
-
-                        last = None
-
-                        while part1[-1] == part2[-1]:
-                            part1.pop()
-                            last = part2.pop()
-
-                        if last:
-                            part2.append(last)
-
-                        result = set(part1 + part2)
-
-                        return result if len(result) > 3 else None
-
-                stack = new_stack
-
-            return None
-
         if len(self._board) <= 6:
             return
 
@@ -1032,22 +971,36 @@ class Player(Board):
 
         self.cycles.clear()
 
-        for cell in self._board:
-            if cell in self.cycles:
+        queue: deque[Cell] = deque()
+        visited = set()
+
+        cells = list(self._board.keys())
+
+        for cell in cells:
+            queue.clear()
+            visited.clear()
+
+            neighbor = next(self.neighbors(cell), None)
+            if not neighbor:
                 continue
 
-            cycle = find_cycle(cell)
+            queue.append(neighbor)
+            visited.add(cell)
 
-            if not cycle:
-                continue
+            with lift_piece(self, cell):
+                while queue:
+                    current_cell = queue.popleft()
+                    if current_cell in visited:
+                        continue
 
-            found_cycles += 1
+                    visited.add(current_cell)
 
-            if cycle <= self.cycles:
-                duplicates += 1
-                continue
+                    queue.extend(self.neighbors(current_cell))
 
-            self.cycles.update(cycle)
+            # print(f"{len(visited)} {len(self._board)}")
+            if len(visited) == len(self._board):
+                found_cycles += 1
+                self.cycles.add(cell)
 
         self.__cached_cycles[hashed] = self.cycles
 
